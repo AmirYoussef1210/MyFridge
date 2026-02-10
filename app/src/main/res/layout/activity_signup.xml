@@ -19,11 +19,11 @@
             android:padding="16dp"
             android:gravity="center_vertical">
 
-            <ImageView
+            <!--<ImageView
                 android:id="@+id/btnBack"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@drawable/ic_arrow_back"/>
+                android:src="@drawable/ic_arrow_back"/>-->
 
             <TextView
                 android:layout_width="0dp"
@@ -67,8 +67,7 @@
             android:layout_marginTop="8dp"
             android:hint="Enter your full name"
             android:inputType="textPersonName"
-            android:padding="16dp"
-            android:background="@drawable/bg_input"/>
+            android:padding="16dp" />
 
         <!-- Email -->
         <TextView
@@ -86,8 +85,7 @@
             android:layout_marginTop="8dp"
             android:hint="Enter your email"
             android:inputType="textEmailAddress"
-            android:padding="16dp"
-            android:background="@drawable/bg_input"/>
+            android:padding="16dp" />
 
         <!-- Password -->
         <TextView
@@ -105,27 +103,9 @@
             android:layout_marginTop="8dp"
             android:hint="Create a password"
             android:inputType="textPassword"
-            android:padding="16dp"
-            android:background="@drawable/bg_input"/>
+            android:padding="16dp" />
 
         <!-- Confirm Password -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Confirm Password"
-            android:textStyle="bold"
-            android:layout_marginHorizontal="24dp"/>
-
-        <EditText
-            android:id="@+id/etConfirmPassword"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_margin="24dp"
-            android:layout_marginTop="8dp"
-            android:hint="Confirm your password"
-            android:inputType="textPassword"
-            android:padding="16dp"
-            android:background="@drawable/bg_input"/>
 
         <!-- Sign Up Button -->
         <Button
@@ -139,6 +119,15 @@
             android:textColor="@android:color/white"
             android:backgroundTint="#135BEC"
             android:layout_margin="24dp"/>
+
+        <TextView
+            android:id="@+id/tvMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="24dp"
+            android:gravity="center"
+            android:textColor="#FF0000"
+            android:textSize="14sp" />
 
         <!-- Already Have Account -->
         <TextView
