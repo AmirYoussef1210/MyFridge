@@ -1,10 +1,14 @@
 package com.example.myfridge;
 
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
+import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -18,25 +22,45 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
 import com.google.firebase.auth.FirebaseAuthInvalidUserException;
-import com.google.firebase.auth.FirebaseUser;
 
 public class MainActivity extends AppCompatActivity {
 
     private EditText etEmail, etPassword;
+    private CheckBox cbStayLoggedIn;
     private TextView tvMessage, txtSignup;
+    private Button btnLogin;
     private FirebaseAuth mAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
+        // 1. Check if user should stay logged in
+        SharedPreferences sp = getSharedPreferences("MyFridgePrefs", Context.MODE_PRIVATE);
+        boolean stayLoggedIn = sp.getBoolean("stayLoggedIn", false);
         mAuth = FirebaseAuth.getInstance();
+
+        if (stayLoggedIn && mAuth.getCurrentUser() != null) {
+            startActivity(new Intent(MainActivity.this, MainScreenActivity.class));
+            finish();
+            return;
+        }
+
+        setContentView(R.layout.activity_main);
 
         etEmail = findViewById(R.id.etEmail);
         etPassword = findViewById(R.id.etPassword);
+        cbStayLoggedIn = findViewById(R.id.cbStayLoggedIn);
         tvMessage = findViewById(R.id.tvMessage);
         txtSignup = findViewById(R.id.txtSignup);
+        btnLogin = findViewById(R.id.btnLogin);
+
+        btnLogin.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                login();
+            }
+        });
 
         txtSignup.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -46,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    public void login(View view) {
+    private void login() {
         String email = etEmail.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
 
@@ -66,23 +90,33 @@ public class MainActivity extends AppCompatActivity {
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         pd.dismiss();
                         if (task.isSuccessful()) {
-                            FirebaseUser user = mAuth.getCurrentUser();
-                            tvMessage.setText("Login successful\nUid: " + user.getUid());
-                        } else {
-                            Exception exp = task.getException();
-                            String message;
-                            if (exp instanceof FirebaseAuthInvalidUserException) {
-                                message = "Invalid email address.";
-                            } else if (exp instanceof FirebaseAuthInvalidCredentialsException) {
-                                message = "Invalid password.";
-                            } else if (exp instanceof FirebaseNetworkException) {
-                                message = "Network error. Please check your connection and try again.";
-                            } else {
-                                message = "An error occurred. Please try again later.";
+                            // 2. Save preference if checkbox is checked
+                            if (cbStayLoggedIn.isChecked()) {
+                                SharedPreferences sp = getSharedPreferences("MyFridgePrefs", Context.MODE_PRIVATE);
+                                sp.edit().putBoolean("stayLoggedIn", true).apply();
                             }
-                            tvMessage.setText(message);
+
+                            // 3. Go to Main Screen and finish this activity so user can't go back
+                            startActivity(new Intent(MainActivity.this, MainScreenActivity.class));
+                            finish();
+                        } else {
+                            handleError(task.getException());
                         }
                     }
                 });
+    }
+
+    private void handleError(Exception exp) {
+        String message;
+        if (exp instanceof FirebaseAuthInvalidUserException) {
+            message = "Invalid email address.";
+        } else if (exp instanceof FirebaseAuthInvalidCredentialsException) {
+            message = "Invalid password.";
+        } else if (exp instanceof FirebaseNetworkException) {
+            message = "Network error.";
+        } else {
+            message = "An error occurred.";
+        }
+        tvMessage.setText(message);
     }
 }
