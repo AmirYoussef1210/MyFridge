@@ -144,52 +144,72 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="15dp"
+            android:layout_marginTop="16dp"
             android:orientation="horizontal">
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="5dp"
+                android:layout_marginEnd="6dp"
                 android:layout_weight="1"
                 android:background="@android:color/white"
+                android:elevation="1dp"
                 android:orientation="vertical"
-                android:padding="15dp">
+                android:padding="16dp">
+
+                <ImageView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:padding="6dp"
+                    android:src="@drawable/ic_dairy"
+                    app:tint="#3F51B5" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Fridge Temp"
+                    android:layout_marginTop="12dp"
+                    android:text="Dairy"
+                    android:textColor="#7C86A1"
                     android:textSize="12sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="3.2°C"
-                    android:textSize="18sp"
+                    android:text="8 Items"
+                    android:textColor="#1A1C1E"
                     android:textStyle="bold" />
             </LinearLayout>
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="5dp"
+                android:layout_marginStart="6dp"
                 android:layout_weight="1"
                 android:background="@android:color/white"
+                android:elevation="1dp"
                 android:orientation="vertical"
-                android:padding="15dp">
+                android:padding="16dp">
+
+                <ImageView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:padding="6dp"
+                    android:src="@drawable/ic_produce"
+                    app:tint="#3F51B5" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Humidity"
+                    android:layout_marginTop="12dp"
+                    android:text="Produce"
+                    android:textColor="#7C86A1"
                     android:textSize="12sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="45%"
-                    android:textSize="18sp"
+                    android:text="15 Items"
+                    android:textColor="#1A1C1E"
                     android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
@@ -218,21 +238,35 @@
             app:iconSize="24dp"
             app:iconTint="#3F51B5" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_shopping"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Shopping"
-            style="?android:attr/borderlessButtonStyle" />
+            android:textColor="#3F51B5"
+            android:textSize="12sp"
+            app:icon="@drawable/ic_shopping_list"
+            app:iconGravity="textStart"
+            app:iconPadding="8dp"
+            app:iconSize="24dp"
+            app:iconTint="#3F51B5" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_settings"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Settings"
-            style="?android:attr/borderlessButtonStyle" />
+            android:textColor="#3F51B5"
+            android:textSize="12sp"
+            app:icon="@drawable/ic_settings"
+            app:iconGravity="textStart"
+            app:iconPadding="8dp"
+            app:iconSize="24dp"
+            app:iconTint="#3F51B5" />
 
     </LinearLayout>
 
