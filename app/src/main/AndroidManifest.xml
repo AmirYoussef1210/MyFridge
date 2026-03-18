@@ -12,6 +12,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyFridge">
         <activity
+            android:name=".addToStorage"
+            android:exported="false" />
+        <activity
             android:name=".MainScreenActivity"
             android:exported="false" />
         <activity
