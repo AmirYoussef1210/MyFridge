@@ -12,6 +12,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.myfridge.rtdb.RtdbRepository;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.FirebaseNetworkException;
@@ -20,6 +21,9 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
 import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.UserProfileChangeRequest;
+import com.google.firebase.database.FirebaseDatabase;
 
 public class SignupActivity extends AppCompatActivity {
 
@@ -83,8 +87,28 @@ public class SignupActivity extends AppCompatActivity {
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         pd.dismiss();
                         if (task.isSuccessful()) {
-                            // After signup, we can go back to login or auto-login
-                            // Let's just go back to login for simplicity, or we could auto-login and go to MainScreen
+                            FirebaseUser user = mAuth.getCurrentUser();
+                            if (user != null) {
+                                // Save name to Auth profile (optional) and RTDB (used by greeting/settings).
+                                UserProfileChangeRequest req = new UserProfileChangeRequest.Builder()
+                                        .setDisplayName(fullName)
+                                        .build();
+
+                                user.updateProfile(req).addOnCompleteListener(t -> {
+                                    new RtdbRepository().ensureUserProfile(user);
+                                    FirebaseDatabase.getInstance()
+                                            .getReference()
+                                            .child("users")
+                                            .child(user.getUid())
+                                            .child("name")
+                                            .setValue(fullName);
+                                    Intent i = new Intent(SignupActivity.this, OnboardingActivity.class);
+                                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                    startActivity(i);
+                                    finish();
+                                });
+                                return;
+                            }
                             finish();
                         } else {
                             handleError(task.getException());

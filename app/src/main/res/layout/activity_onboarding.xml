@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="#F6F6F8">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:id="@+id/txt_onboarding_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Let's set things up"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#0D121B"
+            android:layout_marginBottom="18dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Units"
+            android:textStyle="bold"
+            android:textColor="#0D121B" />
+
+        <RadioGroup
+            android:id="@+id/rg_units"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="18dp">
+
+            <RadioButton
+                android:id="@+id/rb_metric"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Metric (kg / ml)"
+                android:tag="metric" />
+
+            <RadioButton
+                android:id="@+id/rb_imperial"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Imperial (lb / oz)"
+                android:tag="imperial" />
+        </RadioGroup>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Notify me X days before expiration"
+            android:textStyle="bold"
+            android:textColor="#0D121B" />
+
+        <EditText
+            android:id="@+id/et_days_before_expire"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="8dp"
+            android:hint="e.g. 2"
+            android:inputType="number"
+            android:padding="16dp" />
+
+        <TextView
+            android:id="@+id/tv_onboarding_error"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#FF0000"
+            android:layout_marginTop="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_save_onboarding"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="Continue"
+            android:textAllCaps="false"
+            android:layout_marginTop="18dp"
+            app:backgroundTint="#135BEC"
+            android:textColor="@android:color/white" />
+
+    </LinearLayout>
+</ScrollView>
+
