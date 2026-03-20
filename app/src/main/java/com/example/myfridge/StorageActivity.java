@@ -1,6 +1,7 @@
 package com.example.myfridge;
 
 import android.app.Activity;
+import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.text.InputType;
 import android.os.Bundle;
@@ -9,9 +10,11 @@ import android.text.TextWatcher;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
+import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
@@ -34,6 +37,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -171,7 +175,7 @@ public class StorageActivity extends AppCompatActivity {
     }
 
     private void showProductOptionsDialog(Product product) {
-        String[] options = new String[]{"Change amount", "Remove"};
+        String[] options = new String[]{"Change amount", "Change expiration date", "Remove"};
 
         new AlertDialog.Builder(this)
                 .setTitle(product.name)
@@ -179,6 +183,8 @@ public class StorageActivity extends AppCompatActivity {
                     if (which == 0) {
                         showChangeAmountDialog(product);
                     } else if (which == 1) {
+                        showChangeExpirationDateDialog(product);
+                    } else if (which == 2) {
                         confirmRemoveProduct(product);
                     }
                 })
@@ -224,6 +230,65 @@ public class StorageActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    private void showChangeExpirationDateDialog(Product product) {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) return;
+
+        Calendar now = Calendar.getInstance();
+        Calendar minCal = Calendar.getInstance();
+        minCal.setTimeInMillis(System.currentTimeMillis());
+        minCal.set(Calendar.HOUR_OF_DAY, 0);
+        minCal.set(Calendar.MINUTE, 0);
+        minCal.set(Calendar.SECOND, 0);
+        minCal.set(Calendar.MILLISECOND, 0);
+        minCal.add(Calendar.DAY_OF_YEAR, 1); // at least 1 day after today
+        long minMs = minCal.getTimeInMillis();
+
+        Calendar initial = Calendar.getInstance();
+        if (product.expiresAtMs > 0L) {
+            initial.setTimeInMillis(product.expiresAtMs);
+        } else {
+            initial.setTimeInMillis(minMs);
+        }
+        // Use midday to avoid DST boundary issues when converting ms <-> yyyy-MM-dd.
+        initial.set(Calendar.HOUR_OF_DAY, 12);
+        initial.set(Calendar.MINUTE, 0);
+        initial.set(Calendar.SECOND, 0);
+        initial.set(Calendar.MILLISECOND, 0);
+
+        DatePickerDialog dlg = new DatePickerDialog(
+                this,
+                (DatePicker view, int year, int month, int dayOfMonth) -> {
+                    Calendar selected = Calendar.getInstance();
+                    selected.set(Calendar.YEAR, year);
+                    selected.set(Calendar.MONTH, month);
+                    selected.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+                    selected.set(Calendar.HOUR_OF_DAY, 12);
+                    selected.set(Calendar.MINUTE, 0);
+                    selected.set(Calendar.SECOND, 0);
+                    selected.set(Calendar.MILLISECOND, 0);
+
+                    long selectedMs = selected.getTimeInMillis();
+                    if (selectedMs < minMs) {
+                        Toast.makeText(
+                                this,
+                                "Date must be at least 1 day after today.",
+                                Toast.LENGTH_SHORT
+                        ).show();
+                        return;
+                    }
+
+                    rtdb.changeInventoryExpirationDate(user, product, selectedMs);
+                    refresh();
+                },
+                initial.get(Calendar.YEAR),
+                initial.get(Calendar.MONTH),
+                initial.get(Calendar.DAY_OF_MONTH)
+        );
+        dlg.getDatePicker().setMinDate(minMs);
+        dlg.show();
     }
 
     private void applyAllFilters() {

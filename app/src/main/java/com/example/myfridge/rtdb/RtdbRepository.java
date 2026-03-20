@@ -119,6 +119,62 @@ public class RtdbRepository {
         productRef(user, p).removeValue();
     }
 
+    public void changeInventoryExpirationDate(
+            @NonNull FirebaseUser user,
+            @NonNull Product p,
+            long newExpiresAtMs
+    ) {
+        // If only the time changed but the day bucket stays the same, just update expiresAtMs.
+        String oldExpKey = RtdbKeyUtil.expirationKey(p.expiresAtMs);
+        String newExpKey = RtdbKeyUtil.expirationKey(newExpiresAtMs);
+        if (oldExpKey.equals(newExpKey)) {
+            DatabaseReference oldRef = productRef(user, p);
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("expiresAtMs", newExpiresAtMs);
+            updates.put("updatedAtMs", System.currentTimeMillis());
+            oldRef.updateChildren(updates);
+            return;
+        }
+
+        // Otherwise, move the node from the old expiration bucket to the new one.
+        String uid = user.getUid();
+        String categoryKey = RtdbKeyUtil.categoryKey(p.category);
+        String productKey = RtdbKeyUtil.stableProductKey(p.name, p.unit);
+
+        DatabaseReference oldRef = root.child("inventory")
+                .child(uid)
+                .child(categoryKey)
+                .child(oldExpKey)
+                .child(productKey);
+
+        DatabaseReference newRef = root.child("inventory")
+                .child(uid)
+                .child(categoryKey)
+                .child(newExpKey)
+                .child(productKey);
+
+        Map<String, Object> meta = new HashMap<>();
+        meta.put("name", p.name);
+        meta.put("units", p.unit);
+        meta.put("category", p.category);
+        meta.put("image", p.imageUri == null ? "" : p.imageUri);
+        meta.put("amount", p.amount);
+        meta.put("expiresAtMs", newExpiresAtMs);
+        meta.put("updatedAtMs", System.currentTimeMillis());
+
+        Long existingProductId = tryParseProductId(p.productId);
+        if (existingProductId != null) {
+            meta.put("productID", existingProductId);
+        }
+
+        // Write to new bucket then remove old bucket.
+        newRef.updateChildren(meta);
+        oldRef.removeValue();
+
+        // If productID wasn't present/couldn't be parsed, ensure it exists in the new node.
+        ensureProductId(user, newRef);
+    }
+
     private DatabaseReference productRef(@NonNull FirebaseUser user, @NonNull Product p) {
         String uid = user.getUid();
         String categoryKey = RtdbKeyUtil.categoryKey(p.category);
@@ -174,6 +230,17 @@ public class RtdbRepository {
         });
     }
 
+    private static Long tryParseProductId(@Nullable String raw) {
+        if (raw == null) return null;
+        String s = raw.trim();
+        if (s.isEmpty()) return null;
+        try {
+            return Long.parseLong(s);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
     /**
      * Reads and flattens:
      * /inventory/<uid>/<category>/<expiration>/<productID>
@@ -191,10 +258,9 @@ public class RtdbRepository {
                             for (DataSnapshot expSnap : categorySnap.getChildren()) {
                                 String expirationKey = expSnap.getKey();
                                 for (DataSnapshot prodSnap : expSnap.getChildren()) {
-                                    String productId = prodSnap.child("productID").getValue(String.class);
-                                    if (productId == null || productId.trim().isEmpty()) {
-                                        productId = prodSnap.getKey();
-                                    }
+                                    Long productIdL = prodSnap.child("productID").getValue(Long.class);
+                                    String productId = productIdL == null ? null : String.valueOf(productIdL);
+                                    if (productId == null || productId.trim().isEmpty()) productId = prodSnap.getKey();
 
                                     String name = prodSnap.child("name").getValue(String.class);
                                     String units = prodSnap.child("units").getValue(String.class);
