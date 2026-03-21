@@ -35,6 +35,36 @@ public class RtdbRepository {
         void onFailure(@NonNull DatabaseError error);
     }
 
+    public interface UserPrefsCallback {
+        void onSuccess(@NonNull String units, int daysBeforeExpireChoice);
+
+        void onFailure(@NonNull DatabaseError error);
+    }
+
+    /**
+     * Reads /users/&lt;uid&gt; for units and daysBeforeExpireChoice.
+     * Defaults: units "", days 2 if missing or invalid.
+     */
+    public void fetchUserPreferences(@NonNull FirebaseUser user, @NonNull UserPrefsCallback callback) {
+        root.child("users")
+                .child(user.getUid())
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        String units = snapshot.child("units").getValue(String.class);
+                        if (units == null) units = "";
+                        Long daysL = snapshot.child("daysBeforeExpireChoice").getValue(Long.class);
+                        int days = daysL == null ? 2 : (int) Math.max(1L, Math.min(30L, daysL));
+                        callback.onSuccess(units, days);
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        callback.onFailure(error);
+                    }
+                });
+    }
+
     /**
      * Creates /users/<uid> defaults only if missing.
      */

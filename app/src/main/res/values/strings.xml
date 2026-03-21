@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">MyFridge</string>
+    <string name="expiry_notification_channel_name">Expiry reminders</string>
+    <string name="expiry_notification_channel_desc">Alerts when food is close to expiring</string>
+    <string name="expiry_notification_title">Food expiring soon</string>
 </resources>

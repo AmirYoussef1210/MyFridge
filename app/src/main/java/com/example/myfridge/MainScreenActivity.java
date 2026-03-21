@@ -7,6 +7,8 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.myfridge.notifications.ExpiryNotificationHelper;
+import com.example.myfridge.notifications.ExpiryWorkScheduler;
 import com.example.myfridge.storage.Product;
 import com.example.myfridge.rtdb.RtdbRepository;
 import com.google.firebase.auth.FirebaseAuth;
@@ -57,6 +59,8 @@ public class MainScreenActivity extends AppCompatActivity {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user != null) {
             rtdb.ensureUserProfile(user);
+            ExpiryNotificationHelper.createChannel(this);
+            ExpiryWorkScheduler.schedule(this);
         }
     }
 
@@ -113,42 +117,57 @@ public class MainScreenActivity extends AppCompatActivity {
             return;
         }
 
-        rtdb.fetchAllInventory(user, new RtdbRepository.ProductsCallback() {
+        rtdb.fetchUserPreferences(user, new RtdbRepository.UserPrefsCallback() {
             @Override
-            public void onSuccess(List<Product> products) {
-                runOnUiThread(() -> {
-                    int totalAmount = 0;
-                    int aboutToExpireCount = 0;
-                    int dairyAmount = 0;
-                    int produceAmount = 0;
+            public void onSuccess(String units, int daysBeforeExpireChoice) {
+                long windowMs = (long) daysBeforeExpireChoice * 24L * 60L * 60L * 1000L;
+                rtdb.fetchAllInventory(user, new RtdbRepository.ProductsCallback() {
+                    @Override
+                    public void onSuccess(List<Product> products) {
+                        runOnUiThread(() -> {
+                            int totalAmount = 0;
+                            int aboutToExpireCount = 0;
+                            int dairyAmount = 0;
+                            int produceAmount = 0;
 
-                    long now = System.currentTimeMillis();
-                    long twoDaysMs = 2L * 24L * 60L * 60L * 1000L;
+                            long now = System.currentTimeMillis();
 
-                    for (Product p : products) {
-                        int amt = Math.max(0, p.amount);
-                        totalAmount += amt;
+                            for (Product p : products) {
+                                int amt = Math.max(0, p.amount);
+                                totalAmount += amt;
 
-                        if (p.expiresAtMs > 0L) {
-                            long diff = p.expiresAtMs - now;
-                            if (diff >= 0L && diff <= twoDaysMs) {
-                                aboutToExpireCount += amt;
+                                if (p.expiresAtMs > 0L) {
+                                    long diff = p.expiresAtMs - now;
+                                    if (diff >= 0L && diff <= windowMs) {
+                                        aboutToExpireCount += amt;
+                                    }
+                                }
+
+                                String cat = p.category == null ? "" : p.category.trim().toLowerCase();
+                                if (cat.equals("dairy")) {
+                                    dairyAmount += amt;
+                                } else if (cat.equals("produce") || cat.equals("vegetable") || cat.equals("vegetables") ||
+                                        cat.equals("fruit") || cat.equals("fruits")) {
+                                    produceAmount += amt;
+                                }
                             }
-                        }
 
-                        String cat = p.category == null ? "" : p.category.trim().toLowerCase();
-                        if (cat.equals("dairy")) {
-                            dairyAmount += amt;
-                        } else if (cat.equals("produce") || cat.equals("vegetable") || cat.equals("vegetables") ||
-                                cat.equals("fruit") || cat.equals("fruits")) {
-                            produceAmount += amt;
-                        }
+                            txtTotalProducts.setText(String.valueOf(totalAmount));
+                            txtAboutToExpire.setText("About to expire: " + aboutToExpireCount);
+                            txtDairyItems.setText(dairyAmount + " Items");
+                            txtProduceItems.setText(produceAmount + " Items");
+                        });
                     }
 
-                    txtTotalProducts.setText(String.valueOf(totalAmount));
-                    txtAboutToExpire.setText("About to expire: " + aboutToExpireCount);
-                    txtDairyItems.setText(dairyAmount + " Items");
-                    txtProduceItems.setText(produceAmount + " Items");
+                    @Override
+                    public void onFailure(DatabaseError error) {
+                        runOnUiThread(() -> {
+                            txtTotalProducts.setText("0");
+                            txtAboutToExpire.setText("About to expire: 0");
+                            txtDairyItems.setText("0 Items");
+                            txtProduceItems.setText("0 Items");
+                        });
+                    }
                 });
             }
 

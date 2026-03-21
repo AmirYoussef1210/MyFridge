@@ -63,6 +63,8 @@ public class StorageActivity extends AppCompatActivity {
     private final List<Product> allProducts = new ArrayList<>();
     private String selectedCategory = "All";
     private SortMode sortMode = SortMode.RECENTLY_ADDED;
+    /** From RTDB users/&lt;uid&gt;/daysBeforeExpireChoice (default 2 days). */
+    private long aboutToExpireWindowMs = 2L * 24L * 60L * 60L * 1000L;
 
     private final ActivityResultLauncher<Intent> addToStorageLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), this::onAddResult);
@@ -159,7 +161,19 @@ public class StorageActivity extends AppCompatActivity {
                     allProducts.clear();
                     allProducts.addAll(products);
                     setupCategorySpinner();
-                    applyAllFilters();
+                    rtdb.fetchUserPreferences(user, new RtdbRepository.UserPrefsCallback() {
+                        @Override
+                        public void onSuccess(String units, int daysBeforeExpireChoice) {
+                            aboutToExpireWindowMs = (long) daysBeforeExpireChoice * 24L * 60L * 60L * 1000L;
+                            applyAllFilters();
+                        }
+
+                        @Override
+                        public void onFailure(com.google.firebase.database.DatabaseError error) {
+                            aboutToExpireWindowMs = 2L * 24L * 60L * 60L * 1000L;
+                            applyAllFilters();
+                        }
+                    });
                 });
             }
 
@@ -297,7 +311,6 @@ public class StorageActivity extends AppCompatActivity {
 
         List<Product> filtered = new ArrayList<>();
         long now = System.currentTimeMillis();
-        long twoDaysMs = 2L * 24L * 60L * 60L * 1000L;
 
         for (Product p : allProducts) {
             if (!q.isEmpty() && !matchesSearch(p, q)) continue;
@@ -306,7 +319,7 @@ public class StorageActivity extends AppCompatActivity {
             if (onlyExpiringSoon) {
                 if (p.expiresAtMs <= 0L) continue;
                 long diff = p.expiresAtMs - now;
-                if (diff < 0L || diff > twoDaysMs) continue;
+                if (diff < 0L || diff > aboutToExpireWindowMs) continue;
             }
 
             filtered.add(p);
