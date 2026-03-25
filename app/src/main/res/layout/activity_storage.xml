@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8FAFF">
+    android:background="?android:attr/windowBackground">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -15,7 +15,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Storage"
-            android:textColor="#1A1C1E"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="22sp"
             android:textStyle="bold" />
 
@@ -25,7 +25,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="0"
-            android:textColor="#7C86A1" />
+            android:textColor="@color/text_gray" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_storage_search"
@@ -40,7 +40,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="text"
-                android:maxLines="1" />
+                android:maxLines="1"
+                android:textColor="?attr/colorOnSurface" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -54,7 +55,8 @@
                 android:id="@+id/cb_about_to_expire"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="About to expire (2 days)" />
+                android:text="About to expire (2 days)"
+                android:textColor="?attr/colorOnSurface" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -96,7 +98,8 @@
         app:srcCompat="@drawable/ic_inventory"
         app:layout_anchorGravity="bottom|end"
         android:layout_gravity="bottom|end"
-        android:layout_margin="20dp" />
+        android:layout_margin="20dp"
+        app:backgroundTint="@color/primary_blue"
+        app:tint="@color/white" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
-

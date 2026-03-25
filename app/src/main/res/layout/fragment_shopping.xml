@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8FAFF"
+    android:background="?android:attr/windowBackground"
     android:orientation="vertical"
     android:padding="16dp">
 
@@ -11,7 +11,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Shopping list"
-        android:textColor="#1A1C1E"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="22sp"
         android:textStyle="bold" />
 
@@ -22,7 +22,9 @@
         android:layout_marginTop="12dp"
         android:hint="Product name"
         android:inputType="text"
-        android:minHeight="48dp" />
+        android:minHeight="48dp"
+        android:textColor="?attr/colorOnSurface"
+        android:textColorHint="@color/text_gray" />
 
     <EditText
         android:id="@+id/et_shopping_how_many"
@@ -31,14 +33,17 @@
         android:layout_marginTop="8dp"
         android:hint="Qty"
         android:inputType="number"
-        android:minHeight="48dp" />
+        android:minHeight="48dp"
+        android:textColor="?attr/colorOnSurface"
+        android:textColorHint="@color/text_gray" />
 
     <androidx.appcompat.widget.AppCompatCheckBox
         android:id="@+id/cb_keep_when_bought"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:text="Keep this item after bought" />
+        android:text="Keep this item in list after bought"
+        android:textColor="?attr/colorOnSurface" />
 
     <Button
         android:id="@+id/btn_shopping_defaults"
@@ -46,7 +51,9 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
         android:text="Pick from default fridge items"
-        android:textAllCaps="false" />
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        app:backgroundTint="@color/navy_blue" />
 
     <Button
         android:id="@+id/btn_shopping_add"
@@ -55,7 +62,8 @@
         android:layout_marginTop="8dp"
         android:text="Add to my list"
         android:textAllCaps="false"
-        app:backgroundTint="#135BEC" />
+        android:textColor="@color/white"
+        app:backgroundTint="@color/primary_blue" />
 
     <TextView
         android:id="@+id/tv_shopping_empty"
@@ -63,7 +71,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="Your shopping list is empty."
-        android:textColor="#7C86A1"
+        android:textColor="@color/text_gray"
         android:visibility="gone" />
 
     <androidx.recyclerview.widget.RecyclerView
@@ -74,4 +82,3 @@
         android:layout_weight="1" />
 
 </LinearLayout>
-

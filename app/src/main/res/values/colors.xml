@@ -2,4 +2,17 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Dark Blue Theme Colors -->
+    <color name="navy_blue">#001B3D</color>
+    <color name="deep_blue">#001229</color>
+    <color name="primary_blue">#135BEC</color>
+    <color name="accent_blue">#3D8BFF</color>
+
+    <color name="light_blue_bg">#F8FAFF</color>
+    <color name="dark_blue_bg">#000B1A</color>
+
+    <color name="text_dark">#1A1C1E</color>
+    <color name="text_light">#E1E2E5</color>
+    <color name="text_gray">#7C86A1</color>
 </resources>

@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8FAFF"
+    android:background="?android:attr/windowBackground"
     android:orientation="vertical">
 
     <FrameLayout
@@ -16,7 +16,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:background="#FFFFFF"
+        android:background="?attr/colorSurface"
         android:padding="8dp">
 
         <com.google.android.material.button.MaterialButton
@@ -26,13 +26,13 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Inventory"
-            android:textColor="#3F51B5"
+            android:textColor="?attr/colorPrimary"
             android:textSize="12sp"
             app:icon="@drawable/ic_inventory"
             app:iconGravity="textStart"
             app:iconPadding="8dp"
             app:iconSize="24dp"
-            app:iconTint="#3F51B5" />
+            app:iconTint="?attr/colorPrimary" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_shopping"
@@ -41,13 +41,13 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Shopping"
-            android:textColor="#3F51B5"
+            android:textColor="?attr/colorPrimary"
             android:textSize="12sp"
             app:icon="@drawable/ic_shopping_list"
             app:iconGravity="textStart"
             app:iconPadding="8dp"
             app:iconSize="24dp"
-            app:iconTint="#3F51B5" />
+            app:iconTint="?attr/colorPrimary" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_settings"
@@ -56,13 +56,13 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Settings"
-            android:textColor="#3F51B5"
+            android:textColor="?attr/colorPrimary"
             android:textSize="12sp"
             app:icon="@drawable/ic_settings"
             app:iconGravity="textStart"
             app:iconPadding="8dp"
             app:iconSize="24dp"
-            app:iconTint="#3F51B5" />
+            app:iconTint="?attr/colorPrimary" />
 
     </LinearLayout>
 

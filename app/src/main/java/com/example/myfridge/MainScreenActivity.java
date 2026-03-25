@@ -6,6 +6,7 @@ import android.widget.Button;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
+import com.example.myfridge.fragments.HomeFragment;
 import com.example.myfridge.fragments.SettingsFragment;
 import com.example.myfridge.fragments.ShoppingFragment;
 import com.example.myfridge.fragments.StorageFragment;
@@ -35,7 +36,7 @@ public class MainScreenActivity extends AppCompatActivity {
         btnSettings.setOnClickListener(v -> switchFragment(new SettingsFragment()));
 
         if (savedInstanceState == null) {
-            switchFragment(new StorageFragment());
+            switchFragment(new HomeFragment());
         }
     }
 
@@ -49,7 +50,9 @@ public class MainScreenActivity extends AppCompatActivity {
             ExpiryWorkScheduler.schedule(this);
         }
     }
-    private void switchFragment(Fragment fragment) {
+
+    /** Used by bottom bar and {@link HomeFragment} shortcut rows. */
+    public void switchFragment(Fragment fragment) {
         getSupportFragmentManager()
                 .beginTransaction()
                 .replace(R.id.main_fragment_container, fragment)
@@ -58,7 +61,11 @@ public class MainScreenActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        // Prevent going back to login screen
+        Fragment current = getSupportFragmentManager().findFragmentById(R.id.main_fragment_container);
+        if (current != null && !(current instanceof HomeFragment)) {
+            switchFragment(new HomeFragment());
+            return;
+        }
         moveTaskToBack(true);
     }
 }

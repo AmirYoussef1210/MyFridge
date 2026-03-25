@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8FAFF"
+    android:background="?android:attr/windowBackground"
     android:fillViewport="true">
 
     <LinearLayout
@@ -16,7 +16,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Settings"
-            android:textColor="#1A1C1E"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="22sp"
             android:textStyle="bold" />
 
@@ -25,7 +25,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             android:text="Units"
-            android:textColor="#0D121B"
+            android:textColor="?attr/colorOnSurface"
             android:textStyle="bold" />
 
         <RadioGroup
@@ -40,6 +40,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:tag="metric"
+                android:textColor="?attr/colorOnSurface"
                 android:text="Metric (kg / ml)" />
 
             <RadioButton
@@ -47,6 +48,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:tag="imperial"
+                android:textColor="?attr/colorOnSurface"
                 android:text="Imperial (lb / oz)" />
         </RadioGroup>
 
@@ -55,7 +57,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
             android:text="Notify me X days before expiration"
-            android:textColor="#0D121B"
+            android:textColor="?attr/colorOnSurface"
             android:textStyle="bold" />
 
         <EditText
@@ -65,14 +67,17 @@
             android:layout_marginTop="8dp"
             android:hint="1–30"
             android:inputType="number"
-            android:padding="16dp" />
+            android:padding="16dp"
+            android:textColor="?attr/colorOnSurface"
+            android:textColorHint="@color/text_gray" />
 
         <com.google.android.material.switchmaterial.SwitchMaterial
             android:id="@+id/sw_expiry_notifications"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="Expiry alerts (notification)" />
+            android:text="Expiry alerts (notification)"
+            android:textColor="?attr/colorOnSurface" />
 
         <TextView
             android:id="@+id/tv_settings_error"
@@ -89,7 +94,7 @@
             android:layout_marginTop="12dp"
             android:text="Save"
             android:textAllCaps="false"
-            app:backgroundTint="#135BEC"
+            app:backgroundTint="@color/primary_blue"
             android:textColor="@android:color/white" />
 
         <com.google.android.material.button.MaterialButton
