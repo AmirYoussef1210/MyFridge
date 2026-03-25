@@ -137,26 +137,26 @@ public class addToStorage extends AppCompatActivity {
                 pD.show();
 
                 String prompt = "System Instructions:\n" +
-                        "You are a product analysis expert. Analyze the attached image and provide the details of the product in a valid JSON format only. Do not include any introductory text or markdown formatting like ```json.\n" +
+                        "You are a fridge inventory assistant. Analyze the attached image and decide if it depicts a FOOD item that belongs in a household refrigerator (i.e., something edible that can be stored in the fridge).\n" +
+                        "Exclude anything that is clearly NOT food (e.g., empty containers, plates/utensils, clothing, cleaning products) and anything where the content cannot be reasonably determined.\n" +
                         "\n" +
-                        "Task:\n" +
-                        "Identify the product in the image and extract the following information:\n" +
+                        "Return ONLY valid JSON (no markdown, no extra text).\n" +
                         "\n" +
-                        "product_name: The common name of the product.\n" +
-                        "\n" +
-                        "shelf_life: The typical time it takes to spoil under standard storage conditions (e.g., \"7 days\", \"12 months\").\n" +
-                        "\n" +
-                        "measurement_unit: State whether it is typically measured in \"kg\" or \"ml\".\n" +
-                        "\n" +
-                        "category: The food category (e.g., Dairy, Meat, Vegetable, Fruit, etc.).\n" +
-                        "\n" +
-                        "Output Format (JSON):\n" +
+                        "Output JSON schema:\n" +
                         "{\n" +
-                        "\"product_name\": \"string\",\n" +
-                        "\"shelf_life\": \"string\",\n" +
-                        "\"measurement_unit\": \"string\",\n" +
-                        "\"category\": \"string\"\n" +
-                        "}";
+                        "  \"is_fridge_item\": true|false,\n" +
+                        "  \"reason\": \"string (short, 1 sentence)\",\n" +
+                        "  \"product_name\": \"string (empty if is_fridge_item=false)\",\n" +
+                        "  \"shelf_life\": \"string (empty if is_fridge_item=false; e.g., '7 days', '12 months')\",\n" +
+                        "  \"measurement_unit\": \"kg\"|\"ml\"|\"piece\" (empty if is_fridge_item=false)\",\n" +
+                        "  \"category\": \"dairy\"|\"produce\"|\"meat\"|\"vegetable\"|\"fruit\"|\"other\" (empty if is_fridge_item=false) \n" +
+                        "}\n" +
+                        "\n" +
+                        "Notes:\n" +
+                        "- If the item is food but cannot be stored in a fridge, set is_fridge_item=false.\n" +
+                        "- If the item is food that belongs in the fridge, set is_fridge_item=true and fill in product_name/shelf_life/measurement_unit/category.\n" +
+                        "- measurement_unit should be consistent with typical grocery packaging: use 'piece' for eggs/butter sticks/cheese blocks, 'kg' for many produce items, and 'ml' for liquids.\n" +
+                        "- category should be lowercase.\n";
 
                 gM.sendTextWIthPhotoPrompt(prompt, imageBitmap, new GeminiCallBack() {
                     @Override
@@ -165,39 +165,50 @@ public class addToStorage extends AppCompatActivity {
                             if (pD.isShowing()) {
                                 pD.dismiss();
                             }
-                            tVMsg.setText(result);
 
                             // Try to parse Gemini JSON and return to Storage screen.
                             try {
                                 org.json.JSONObject o = new org.json.JSONObject(result);
+                                boolean isFridgeItem = o.optBoolean("is_fridge_item", false);
+                                String reason = o.optString("reason", "").trim();
+
+                                if (!isFridgeItem) {
+                                    tVMsg.setText("This doesn't look like a fridge food." + (reason.isEmpty() ? "" : (" Reason: " + reason)));
+                                    return;
+                                }
+
                                 String name = o.optString("product_name", "").trim();
                                 String shelfLife = o.optString("shelf_life", "").trim();
                                 String unit = o.optString("measurement_unit", "").trim();
                                 String category = o.optString("category", "").trim();
 
-                                if (!name.isEmpty()) {
-                                    long now = System.currentTimeMillis();
-                                    long expiresAtMs = 0L;
-                                    long duration = com.example.myfridge.storage.ShelfLifeParser.parseToDurationMillis(shelfLife);
-                                    if (duration > 0L) {
-                                        expiresAtMs = now + duration;
-                                    }
-
-                                    org.json.JSONObject out = new org.json.JSONObject();
-                                    out.put("name", name);
-                                    out.put("unit", unit);
-                                    out.put("category", category);
-                                    out.put("imageUri", lastImageUriString == null ? "" : lastImageUriString);
-                                    out.put("shelfLifeRaw", shelfLife);
-                                    out.put("expiresAtMs", expiresAtMs);
-                                    out.put("addedAtMs", now);
-
-                                    Intent data = new Intent();
-                                    data.putExtra(StorageActivity.EXTRA_PRODUCT_JSON, out.toString());
-                                    setResult(Activity.RESULT_OK, data);
-                                    finish();
+                                if (name.isEmpty()) {
+                                    tVMsg.setText("Couldn't identify the product name. " + (reason.isEmpty() ? "" : ("Reason: " + reason)));
+                                    return;
                                 }
+
+                                long now = System.currentTimeMillis();
+                                long expiresAtMs = 0L;
+                                long duration = com.example.myfridge.storage.ShelfLifeParser.parseToDurationMillis(shelfLife);
+                                if (duration > 0L) {
+                                    expiresAtMs = now + duration;
+                                }
+
+                                org.json.JSONObject out = new org.json.JSONObject();
+                                out.put("name", name);
+                                out.put("unit", unit);
+                                out.put("category", category);
+                                out.put("imageUri", lastImageUriString == null ? "" : lastImageUriString);
+                                out.put("shelfLifeRaw", shelfLife);
+                                out.put("expiresAtMs", expiresAtMs);
+                                out.put("addedAtMs", now);
+
+                                Intent data = new Intent();
+                                data.putExtra(StorageActivity.EXTRA_PRODUCT_JSON, out.toString());
+                                setResult(Activity.RESULT_OK, data);
+                                finish();
                             } catch (Exception ignored) {
+                                tVMsg.setText("Failed to parse AI response. Please try again.");
                             }
                         });
                     }

@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.example.myfridge.storage.Product;
+import com.example.myfridge.shopping.ShoppingItem;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -40,6 +41,44 @@ public class RtdbRepository {
 
         void onFailure(@NonNull DatabaseError error);
     }
+
+    public interface ShoppingItemsCallback {
+        void onSuccess(@NonNull List<ShoppingItem> items);
+        void onFailure(@NonNull DatabaseError error);
+    }
+
+    public interface EnsureShoppingDefaultsCallback {
+        void onSuccess();
+        void onFailure(@NonNull DatabaseError error);
+    }
+
+    private static class DefaultShoppingSeed {
+        final String name;
+        final String category; // "dairy" | "produce" | "other"
+        final int howMany;
+
+        DefaultShoppingSeed(String name, String category, int howMany) {
+            this.name = name;
+            this.category = category;
+            this.howMany = howMany;
+        }
+    }
+
+    // A small “normal fridge” starter list for new users.
+    private static final DefaultShoppingSeed[] DEFAULT_SHOPPING_SEEDS = new DefaultShoppingSeed[]{
+            new DefaultShoppingSeed("Milk", "dairy", 1),
+            new DefaultShoppingSeed("Yogurt", "dairy", 1),
+            new DefaultShoppingSeed("Butter", "dairy", 1),
+            new DefaultShoppingSeed("Cheese", "dairy", 1),
+            new DefaultShoppingSeed("Eggs", "dairy", 1),
+
+            new DefaultShoppingSeed("Apples", "produce", 1),
+            new DefaultShoppingSeed("Bananas", "produce", 1),
+            new DefaultShoppingSeed("Lettuce", "produce", 1),
+            new DefaultShoppingSeed("Tomatoes", "produce", 1),
+            new DefaultShoppingSeed("Onions", "produce", 1),
+            new DefaultShoppingSeed("Carrots", "produce", 1)
+    };
 
     /**
      * Reads /users/&lt;uid&gt; for units and daysBeforeExpireChoice.
@@ -337,6 +376,235 @@ public class RtdbRepository {
                         callback.onFailure(error);
                     }
                 });
+    }
+
+    /**
+     * Ensures /shopping/<uid>/... has defaults only for new users.
+     */
+    public void ensureShoppingListDefaults(
+            @NonNull FirebaseUser user,
+            @NonNull EnsureShoppingDefaultsCallback callback
+    ) {
+        DatabaseReference listRef = root.child("shopping").child(user.getUid());
+        listRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists() && snapshot.hasChildren()) {
+                    callback.onSuccess();
+                    return;
+                }
+
+                long now = System.currentTimeMillis();
+                Map<String, Object> updates = new HashMap<>();
+
+                for (DefaultShoppingSeed seed : DEFAULT_SHOPPING_SEEDS) {
+                    String categoryKey = RtdbKeyUtil.categoryKey(seed.category);
+                    String itemKey = RtdbKeyUtil.safeKey(seed.name);
+
+                    Map<String, Object> itemMap = new HashMap<>();
+                    itemMap.put("name", seed.name);
+                    itemMap.put("category", seed.category);
+                    itemMap.put("howMany", (long) Math.max(1, seed.howMany));
+                    itemMap.put("bought", false);
+                    itemMap.put("updatedAtMs", now);
+
+                    updates.put(categoryKey + "/" + itemKey, itemMap);
+                }
+
+                listRef.updateChildren(updates, (error, ref) -> {
+                    if (error != null) callback.onFailure(error);
+                    else callback.onSuccess();
+                });
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                callback.onFailure(error);
+            }
+        });
+    }
+
+    public void fetchShoppingList(@NonNull FirebaseUser user, @NonNull ShoppingItemsCallback callback) {
+        root.child("shopping")
+                .child(user.getUid())
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        List<ShoppingItem> out = new ArrayList<>();
+
+                        for (DataSnapshot categorySnap : snapshot.getChildren()) {
+                            String categoryKey = categorySnap.getKey();
+                            for (DataSnapshot itemSnap : categorySnap.getChildren()) {
+                                String itemKey = itemSnap.getKey();
+
+                                String name = itemSnap.child("name").getValue(String.class);
+                                String category = itemSnap.child("category").getValue(String.class);
+                                if (category == null || category.trim().isEmpty()) category = categoryKey;
+
+                                Long howManyL = itemSnap.child("howMany").getValue(Long.class);
+                                int howMany = howManyL == null ? 1 : (int) Math.max(0L, howManyL);
+
+                                Boolean boughtB = itemSnap.child("bought").getValue(Boolean.class);
+                                boolean bought = boughtB != null && boughtB;
+                                Boolean savedB = itemSnap.child("saved").getValue(Boolean.class);
+                                boolean saved = savedB != null && savedB;
+
+                                Long updatedAtMsL = itemSnap.child("updatedAtMs").getValue(Long.class);
+                                long updatedAtMs = updatedAtMsL == null ? 0L : updatedAtMsL;
+
+                                if (itemKey == null || itemKey.trim().isEmpty()) continue;
+                                if (name == null) name = "";
+
+                                out.add(new ShoppingItem(itemKey, name, category, howMany, bought, saved, updatedAtMs));
+                            }
+                        }
+
+                        callback.onSuccess(out);
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        callback.onFailure(error);
+                    }
+                });
+    }
+
+    /**
+     * Adds (or increments) the item into /shopping/<uid>/<category>/<itemKey>.
+     * bought is set to the provided value.
+     */
+    public void upsertShoppingItem(@NonNull FirebaseUser user, @NonNull ShoppingItem item) {
+        String uid = user.getUid();
+        String categoryKey = RtdbKeyUtil.categoryKey(item.category);
+        String itemKey = item.key == null ? RtdbKeyUtil.safeKey(item.name) : item.key;
+
+        DatabaseReference itemRef = root.child("shopping")
+                .child(uid)
+                .child(categoryKey)
+                .child(itemKey);
+
+        long now = System.currentTimeMillis();
+
+        itemRef.child("name").setValue(item.name);
+        itemRef.child("category").setValue(item.category);
+        itemRef.child("bought").setValue(item.bought);
+        itemRef.child("saved").setValue(item.saved);
+        itemRef.child("updatedAtMs").setValue(now);
+
+        itemRef.child("howMany").runTransaction(new Transaction.Handler() {
+            @NonNull
+            @Override
+            public Transaction.Result doTransaction(@NonNull MutableData currentData) {
+                Long cur = currentData.getValue(Long.class);
+                long next = (cur == null ? 0L : cur) + item.howMany;
+                currentData.setValue(next);
+                return Transaction.success(currentData);
+            }
+
+            @Override
+            public void onComplete(@Nullable DatabaseError error, boolean committed, @Nullable DataSnapshot currentData) {
+                // No-op
+            }
+        });
+    }
+
+    public void setShoppingItemBought(
+            @NonNull FirebaseUser user,
+            @NonNull ShoppingItem item,
+            boolean bought
+    ) {
+        String uid = user.getUid();
+        String categoryKey = RtdbKeyUtil.categoryKey(item.category);
+        String itemKey = item.key == null ? RtdbKeyUtil.safeKey(item.name) : item.key;
+
+        DatabaseReference itemRef = root.child("shopping")
+                .child(uid)
+                .child(categoryKey)
+                .child(itemKey);
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("bought", bought);
+        updates.put("updatedAtMs", System.currentTimeMillis());
+        itemRef.updateChildren(updates);
+    }
+
+    public void updateShoppingItemAmount(
+            @NonNull FirebaseUser user,
+            @NonNull ShoppingItem item,
+            int newAmount
+    ) {
+        String uid = user.getUid();
+        String categoryKey = RtdbKeyUtil.categoryKey(item.category);
+        String itemKey = item.key == null ? RtdbKeyUtil.safeKey(item.name) : item.key;
+        DatabaseReference itemRef = root.child("shopping")
+                .child(uid)
+                .child(categoryKey)
+                .child(itemKey);
+
+        if (newAmount <= 0) {
+            itemRef.removeValue();
+            return;
+        }
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("howMany", (long) newAmount);
+        updates.put("updatedAtMs", System.currentTimeMillis());
+        itemRef.updateChildren(updates);
+    }
+
+    public void deleteShoppingItem(@NonNull FirebaseUser user, @NonNull ShoppingItem item) {
+        String uid = user.getUid();
+        String categoryKey = RtdbKeyUtil.categoryKey(item.category);
+        String itemKey = item.key == null ? RtdbKeyUtil.safeKey(item.name) : item.key;
+        root.child("shopping")
+                .child(uid)
+                .child(categoryKey)
+                .child(itemKey)
+                .removeValue();
+    }
+
+    public void setShoppingItemSaved(
+            @NonNull FirebaseUser user,
+            @NonNull ShoppingItem item,
+            boolean saved
+    ) {
+        String uid = user.getUid();
+        String categoryKey = RtdbKeyUtil.categoryKey(item.category);
+        String itemKey = item.key == null ? RtdbKeyUtil.safeKey(item.name) : item.key;
+        DatabaseReference itemRef = root.child("shopping")
+                .child(uid)
+                .child(categoryKey)
+                .child(itemKey);
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("saved", saved);
+        updates.put("updatedAtMs", System.currentTimeMillis());
+        itemRef.updateChildren(updates);
+    }
+
+    public void clearBoughtUnsavedShoppingItems(@NonNull FirebaseUser user) {
+        DatabaseReference listRef = root.child("shopping").child(user.getUid());
+        listRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                for (DataSnapshot categorySnap : snapshot.getChildren()) {
+                    for (DataSnapshot itemSnap : categorySnap.getChildren()) {
+                        Boolean boughtB = itemSnap.child("bought").getValue(Boolean.class);
+                        Boolean savedB = itemSnap.child("saved").getValue(Boolean.class);
+                        boolean bought = boughtB != null && boughtB;
+                        boolean saved = savedB != null && savedB;
+                        if (bought && !saved) {
+                            itemSnap.getRef().removeValue();
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                // No-op
+            }
+        });
     }
 
     private static long parseExpirationKeyToMs(@Nullable String expirationKey) {
