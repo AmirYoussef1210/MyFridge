@@ -2,19 +2,27 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.MyFridge" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Primary colors -->
-        <item name="colorPrimary">@color/primary_blue</item>
+        <item name="colorPrimary">@color/navy_blue</item>
         <item name="colorOnPrimary">@color/white</item>
-        <item name="colorPrimaryContainer">@color/navy_blue</item>
+        <item name="colorPrimaryContainer">@color/accent_blue</item>
         <item name="colorOnPrimaryContainer">@color/white</item>
 
         <!-- Secondary colors -->
         <item name="colorSecondary">@color/deep_blue</item>
         <item name="colorOnSecondary">@color/white</item>
 
+        <!-- Error colors (Red for stats as requested) -->
+        <item name="colorError">@color/red_main</item>
+        <item name="colorOnError">@color/white</item>
+        <item name="colorErrorContainer">@color/red_light</item>
+        <item name="colorOnErrorContainer">@color/red_dark</item>
+
         <!-- Background and Surface -->
         <item name="android:windowBackground">@color/light_blue_bg</item>
         <item name="colorSurface">@color/white</item>
         <item name="colorOnSurface">@color/text_dark</item>
+        <item name="colorSurfaceVariant">@color/light_blue_bg</item>
+        <item name="colorOnSurfaceVariant">@color/text_gray</item>
 
         <!-- Status Bar -->
         <item name="android:statusBarColor">@color/navy_blue</item>

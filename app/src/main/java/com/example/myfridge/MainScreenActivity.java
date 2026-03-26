@@ -3,7 +3,7 @@ package com.example.myfridge;
 import android.os.Bundle;
 import android.widget.Button;
 
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.example.myfridge.fragments.HomeFragment;
@@ -16,15 +16,21 @@ import com.example.myfridge.rtdb.RtdbRepository;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
-public class MainScreenActivity extends AppCompatActivity {
+public class MainScreenActivity extends MasterActivity {
+
     private RtdbRepository rtdb;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main_screen);
+    protected int getMasterContentLayoutId() {
+        return R.layout.activity_main_screen;
+    }
 
+    @Override
+    protected void onAfterMasterContentInflated(@Nullable Bundle savedInstanceState) {
         rtdb = new RtdbRepository();
+
+        Button btnHome = findViewById(R.id.btn_home);
+        btnHome.setOnClickListener(v -> switchFragment(new HomeFragment()));
 
         Button btnInventory = findViewById(R.id.btn_inventory);
         btnInventory.setOnClickListener(v -> switchFragment(new StorageFragment()));
@@ -32,12 +38,14 @@ public class MainScreenActivity extends AppCompatActivity {
         Button btnShopping = findViewById(R.id.btn_shopping);
         btnShopping.setOnClickListener(v -> switchFragment(new ShoppingFragment()));
 
-        Button btnSettings = findViewById(R.id.btn_settings);
-        btnSettings.setOnClickListener(v -> switchFragment(new SettingsFragment()));
-
         if (savedInstanceState == null) {
             switchFragment(new HomeFragment());
         }
+    }
+
+    @Override
+    protected void onSettingsMenuSelected() {
+        switchFragment(new SettingsFragment());
     }
 
     @Override

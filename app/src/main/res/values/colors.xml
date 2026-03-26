@@ -9,8 +9,13 @@
     <color name="primary_blue">#135BEC</color>
     <color name="accent_blue">#3D8BFF</color>
 
-    <color name="light_blue_bg">#F8FAFF</color>
-    <color name="dark_blue_bg">#000B1A</color>
+    <!-- Red Colors for Stats/Errors -->
+    <color name="red_main">#D32F2F</color>
+    <color name="red_light">#FFEBEE</color>
+    <color name="red_dark">#B71C1C</color>
+
+    <color name="light_blue_bg">#F0F4F8</color>
+    <color name="dark_blue_bg">#000814</color>
 
     <color name="text_dark">#1A1C1E</color>
     <color name="text_light">#E1E2E5</color>
