@@ -61,6 +61,10 @@ public class MainScreenActivity extends MasterActivity {
 
     /** Used by bottom bar and {@link HomeFragment} shortcut rows. */
     public void switchFragment(Fragment fragment) {
+        Fragment current = getSupportFragmentManager().findFragmentById(R.id.main_fragment_container);
+        if (current != null && current.getClass().equals(fragment.getClass())) {
+            return;
+        }
         getSupportFragmentManager()
                 .beginTransaction()
                 .replace(R.id.main_fragment_container, fragment)

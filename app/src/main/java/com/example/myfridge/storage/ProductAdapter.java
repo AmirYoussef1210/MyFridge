@@ -19,14 +19,14 @@ import java.util.List;
 
 public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.VH> {
     private final List<Product> items = new ArrayList<>();
-    public interface OnProductLongClickListener {
-        void onLongClick(@NonNull Product product);
+    public interface OnProductClickListener {
+        void onClick(@NonNull Product product);
     }
 
-    private OnProductLongClickListener longClickListener;
+    private OnProductClickListener clickListener;
 
-    public void setOnProductLongClickListener(OnProductLongClickListener listener) {
-        this.longClickListener = listener;
+    public void setOnProductClickListener(OnProductClickListener listener) {
+        this.clickListener = listener;
     }
 
     public void submit(List<Product> products) {
@@ -62,12 +62,10 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.VH> {
             holder.image.setImageResource(R.drawable.ic_fridge);
         }
 
-        holder.itemView.setOnLongClickListener(v -> {
-            if (longClickListener != null) {
-                longClickListener.onLongClick(p);
-                return true;
+        holder.itemView.setOnClickListener(v -> {
+            if (clickListener != null) {
+                clickListener.onClick(p);
             }
-            return false;
         });
     }
 

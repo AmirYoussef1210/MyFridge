@@ -3,91 +3,168 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true"
-    android:background="?android:attr/windowBackground">
+    android:background="@color/light_blue_bg"
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="24dp">
+        android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/txt_onboarding_title"
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="110dp"
+            android:background="@color/primary_blue"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/txt_onboarding_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Let's set things up"
+                android:textColor="@color/white"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="Just a few preferences to get started"
+                android:textColor="#CCFFFFFF"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+        <!-- Units card -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Let's set things up"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface"
-            android:layout_marginBottom="18dp" />
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginEnd="16dp"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="3dp">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Units"
-            android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface" />
-
-        <RadioGroup
-            android:id="@+id/rg_units"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="18dp">
-
-            <RadioButton
-                android:id="@+id/rb_metric"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Metric (kg / ml)"
-                android:textColor="?attr/colorOnSurface"
-                android:tag="metric" />
+                android:orientation="vertical"
+                android:padding="20dp">
 
-            <RadioButton
-                android:id="@+id/rb_imperial"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Imperial (lb / oz)"
-                android:textColor="?attr/colorOnSurface"
-                android:tag="imperial" />
-        </RadioGroup>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Measurement Units"
+                    android:textColor="@color/text_dark"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
 
-        <TextView
+                <RadioGroup
+                    android:id="@+id/rg_units"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="vertical">
+
+                    <RadioButton
+                        android:id="@+id/rb_metric"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:tag="metric"
+                        android:text="Metric (kg / ml)"
+                        android:textColor="@color/text_dark" />
+
+                    <RadioButton
+                        android:id="@+id/rb_imperial"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:tag="imperial"
+                        android:text="Imperial (lb / oz)"
+                        android:textColor="@color/text_dark" />
+
+                </RadioGroup>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Notifications card -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Notify me X days before expiration"
-            android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface" />
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginEnd="16dp"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="3dp">
 
-        <EditText
-            android:id="@+id/et_days_before_expire"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="8dp"
-            android:hint="e.g. 2"
-            android:inputType="number"
-            android:padding="16dp"
-            android:textColor="?attr/colorOnSurface"
-            android:textColorHint="@color/text_gray" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Expiry Notifications"
+                    android:textColor="@color/text_dark"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:hint="Days before expiry to notify"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    app:boxCornerRadiusTopStart="10dp"
+                    app:boxCornerRadiusTopEnd="10dp"
+                    app:boxCornerRadiusBottomStart="10dp"
+                    app:boxCornerRadiusBottomEnd="10dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_days_before_expire"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="e.g. 2"
+                        android:inputType="number"
+                        android:maxLines="1" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
 
         <TextView
             android:id="@+id/tv_onboarding_error"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="#FF0000"
-            android:layout_marginTop="12dp" />
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="20dp"
+            android:textColor="@color/red_main"
+            android:textSize="14sp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_save_onboarding"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="52dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="32dp"
             android:text="Continue"
-            android:textAllCaps="false"
-            android:layout_marginTop="18dp"
-            app:backgroundTint="@color/primary_blue"
-            android:textColor="@android:color/white" />
+            android:textSize="16sp"
+            app:cornerRadius="12dp" />
 
     </LinearLayout>
+
 </ScrollView>

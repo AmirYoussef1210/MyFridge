@@ -1,31 +1,26 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.MyFridge" parent="Theme.Material3.DayNight.NoActionBar">
+    <!--
+        Forcing Light theme even in Dark Mode.
+        All night-specific styles are removed to keep the app consistently Light.
+    -->
+    <style name="Base.Theme.MyFridge" parent="Theme.Material3.Light.NoActionBar">
         <!-- Primary colors -->
-        <item name="colorPrimary">@color/accent_blue</item>
-        <item name="colorOnPrimary">@color/deep_blue</item>
+        <item name="colorPrimary">@color/primary_blue</item>
+        <item name="colorOnPrimary">@color/white</item>
         <item name="colorPrimaryContainer">@color/navy_blue</item>
-        <item name="colorOnPrimaryContainer">@color/text_light</item>
+        <item name="colorOnPrimaryContainer">@color/white</item>
 
         <!-- Secondary colors -->
-        <item name="colorSecondary">@color/primary_blue</item>
+        <item name="colorSecondary">@color/deep_blue</item>
         <item name="colorOnSecondary">@color/white</item>
 
-        <!-- Error colors (Red for stats as requested) -->
-        <item name="colorError">@color/red_main</item>
-        <item name="colorOnError">@color/white</item>
-        <item name="colorErrorContainer">@color/red_dark</item>
-        <item name="colorOnErrorContainer">@color/white</item>
-
         <!-- Background and Surface -->
-        <item name="android:windowBackground">@color/dark_blue_bg</item>
-        <item name="colorSurface">@color/navy_blue</item>
-        <item name="colorOnSurface">@color/text_light</item>
-        <item name="colorSurfaceVariant">@color/deep_blue</item>
-        <item name="colorOnSurfaceVariant">@color/text_gray</item>
+        <item name="android:windowBackground">@color/light_blue_bg</item>
+        <item name="colorSurface">@color/white</item>
+        <item name="colorOnSurface">@color/text_dark</item>
 
         <!-- Status Bar -->
-        <item name="android:statusBarColor">@color/dark_blue_bg</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">@color/navy_blue</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
     </style>
 </resources>

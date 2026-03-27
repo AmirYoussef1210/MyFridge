@@ -30,10 +30,7 @@
         <activity
             android:name=".MainScreenActivity"
             android:exported="false" />
-        <activity
-            android:name=".shopping.ShoppingActivity"
-            android:exported="false" />
-        <activity
+<activity
             android:name=".SignupActivity"
             android:exported="false" />
         <activity

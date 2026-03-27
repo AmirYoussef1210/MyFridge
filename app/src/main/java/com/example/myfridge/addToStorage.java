@@ -10,12 +10,13 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
-import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.Toolbar;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -28,7 +29,6 @@ import java.io.File;
 import java.io.IOException;
 
 public class addToStorage extends AppCompatActivity {
-    TextView tVMsg;
     ImageView iV;
     Bitmap imageBitmap;
     String currentPath;
@@ -44,9 +44,10 @@ public class addToStorage extends AppCompatActivity {
         setContentView(R.layout.activity_add_to_storage);
 
         iV = findViewById(R.id.iV);
-        tVMsg = findViewById(R.id.tV);
         gM = GeminiManager.getInstance();
-        tVMsg.setMovementMethod(new ScrollingMovementMethod());
+
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        toolbar.setNavigationOnClickListener(v -> finish());
     }
 
     public void enterPhoto(View view) {
@@ -102,6 +103,14 @@ public class addToStorage extends AppCompatActivity {
                 Toast.makeText(this, "Camera permission denied", Toast.LENGTH_SHORT).show();
             }
         }
+    }
+
+    private void showError(String title, String message) {
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("OK", null)
+                .show();
     }
 
     @Override
@@ -173,7 +182,7 @@ public class addToStorage extends AppCompatActivity {
                                 String reason = o.optString("reason", "").trim();
 
                                 if (!isFridgeItem) {
-                                    tVMsg.setText("This doesn't look like a fridge food." + (reason.isEmpty() ? "" : (" Reason: " + reason)));
+                                    showError("Not a fridge item", "This doesn't look like a fridge food." + (reason.isEmpty() ? "" : ("\n\nReason: " + reason)));
                                     return;
                                 }
 
@@ -183,7 +192,7 @@ public class addToStorage extends AppCompatActivity {
                                 String category = o.optString("category", "").trim();
 
                                 if (name.isEmpty()) {
-                                    tVMsg.setText("Couldn't identify the product name. " + (reason.isEmpty() ? "" : ("Reason: " + reason)));
+                                    showError("Unrecognized Item", "Couldn't identify the product name." + (reason.isEmpty() ? "" : ("\n\nReason: " + reason)));
                                     return;
                                 }
 
@@ -208,7 +217,7 @@ public class addToStorage extends AppCompatActivity {
                                 setResult(Activity.RESULT_OK, data);
                                 finish();
                             } catch (Exception ignored) {
-                                tVMsg.setText("Failed to parse AI response. Please try again.");
+                                showError("Parse Error", "Failed to parse AI response. Please try again.");
                             }
                         });
                     }
@@ -219,7 +228,7 @@ public class addToStorage extends AppCompatActivity {
                             if (pD.isShowing()) {
                                 pD.dismiss();
                             }
-                            tVMsg.setText("Error: " + error.getMessage());
+                            showError("AI Error", "Something went wrong: " + error.getMessage());
                             Log.e(TAG, "onActivityResult/ Error: " + error.getMessage());
                         });
                     }

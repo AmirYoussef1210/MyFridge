@@ -3,21 +3,16 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <!-- Dark Blue Theme Colors -->
-    <color name="navy_blue">#001B3D</color>
-    <color name="deep_blue">#001229</color>
-    <color name="primary_blue">#135BEC</color>
-    <color name="accent_blue">#3D8BFF</color>
+    <!-- App Theme Colors -->
+    <color name="navy_blue">#3F51B5</color>
+    <color name="deep_blue">#303F9F</color>
+    <color name="primary_blue">#3F51B5</color>
 
-    <!-- Red Colors for Stats/Errors -->
-    <color name="red_main">#D32F2F</color>
-    <color name="red_light">#FFEBEE</color>
-    <color name="red_dark">#B71C1C</color>
-
-    <color name="light_blue_bg">#F0F4F8</color>
-    <color name="dark_blue_bg">#000814</color>
+    <color name="light_blue_bg">#F8FAFF</color>
 
     <color name="text_dark">#1A1C1E</color>
-    <color name="text_light">#E1E2E5</color>
     <color name="text_gray">#7C86A1</color>
+
+    <!-- Red Colors -->
+    <color name="red_main">#FF4B4B</color>
 </resources>

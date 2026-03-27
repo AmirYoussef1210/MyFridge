@@ -87,7 +87,7 @@ public class StorageActivity extends AppCompatActivity {
         rv.setLayoutManager(new LinearLayoutManager(this));
         rv.setAdapter(adapter);
 
-        adapter.setOnProductLongClickListener(product -> showProductOptionsDialog(product));
+        adapter.setOnProductClickListener(product -> showProductOptionsDialog(product));
 
         FloatingActionButton fab = findViewById(R.id.fab_add_to_storage);
         fab.setOnClickListener(v -> addToStorageLauncher.launch(new Intent(this, addToStorage.class)));

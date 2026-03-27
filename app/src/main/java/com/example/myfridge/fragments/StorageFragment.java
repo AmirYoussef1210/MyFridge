@@ -81,7 +81,7 @@ public class StorageFragment extends Fragment {
         RecyclerView rv = root.findViewById(R.id.rv_storage);
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
         rv.setAdapter(adapter);
-        adapter.setOnProductLongClickListener(this::showProductOptionsDialog);
+        adapter.setOnProductClickListener(this::showProductOptionsDialog);
 
         FloatingActionButton fab = root.findViewById(R.id.fab_add_to_storage);
         fab.setOnClickListener(v -> addToStorageLauncher.launch(new Intent(requireContext(), addToStorage.class)));

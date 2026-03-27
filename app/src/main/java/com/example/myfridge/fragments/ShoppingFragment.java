@@ -25,8 +25,11 @@ import com.example.myfridge.shopping.ShoppingItem;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ShoppingFragment extends Fragment {
     private RtdbRepository rtdb;
@@ -37,7 +40,7 @@ public class ShoppingFragment extends Fragment {
     private androidx.appcompat.widget.AppCompatCheckBox cbKeepWhenBought;
     private @Nullable FirebaseUser user;
 
-    private final List<ShoppingItem> defaultOptions = Arrays.asList(
+    private final List<ShoppingItem> baseDefaultOptions = Arrays.asList(
             new ShoppingItem("milk", "Milk", "dairy", 1, false, false, 0L),
             new ShoppingItem("yogurt", "Yogurt", "dairy", 1, false, false, 0L),
             new ShoppingItem("butter", "Butter", "dairy", 1, false, false, 0L),
@@ -122,6 +125,7 @@ public class ShoppingFragment extends Fragment {
         boolean saved = cbKeepWhenBought.isChecked();
         ShoppingItem item = new ShoppingItem(RtdbKeyUtil.safeKey(name), name, "other", howMany, false, saved, System.currentTimeMillis());
         rtdb.upsertShoppingItem(u, item);
+        if (saved) rtdb.upsertRecurringDefault(u, item);
         etName.setText("");
         etHowMany.setText("");
         cbKeepWhenBought.setChecked(false);
@@ -131,29 +135,56 @@ public class ShoppingFragment extends Fragment {
     private void showDefaultPickerDialog() {
         FirebaseUser u = FirebaseAuth.getInstance().getCurrentUser();
         if (u == null) return;
-        String[] labels = new String[defaultOptions.size()];
-        boolean[] selected = new boolean[defaultOptions.size()];
-        for (int i = 0; i < defaultOptions.size(); i++) labels[i] = defaultOptions.get(i).name + " (" + defaultOptions.get(i).category + ")";
-        final androidx.appcompat.widget.AppCompatCheckBox keepBox = new androidx.appcompat.widget.AppCompatCheckBox(requireContext());
-        keepBox.setText("Keep selected items after bought");
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Pick default items")
-                .setMultiChoiceItems(labels, selected, (dialog, which, isChecked) -> selected[which] = isChecked)
-                .setView(keepBox)
-                .setPositiveButton("Add selected", (dialog, which) -> {
-                    boolean saved = keepBox.isChecked();
-                    for (int i = 0; i < selected.length; i++) {
-                        if (!selected[i]) continue;
-                        ShoppingItem base = defaultOptions.get(i);
-                        ShoppingItem add = new ShoppingItem(
-                                RtdbKeyUtil.safeKey(base.name), base.name, base.category, 1, false, saved, System.currentTimeMillis()
-                        );
-                        rtdb.upsertShoppingItem(u, add);
+        rtdb.fetchRecurringDefaults(u, new RtdbRepository.RecurringDefaultsCallback() {
+            @Override
+            public void onSuccess(@NonNull List<ShoppingItem> recurringDefaults) {
+                if (!isAdded()) return;
+                requireActivity().runOnUiThread(() -> {
+                    Map<String, ShoppingItem> merged = new LinkedHashMap<>();
+                    for (ShoppingItem item : baseDefaultOptions) merged.put(item.key, item);
+                    for (ShoppingItem item : recurringDefaults) {
+                        String key = item.key == null || item.key.trim().isEmpty()
+                                ? RtdbKeyUtil.safeKey(item.name)
+                                : item.key;
+                        merged.put(key, item);
                     }
-                    fetchAndRender();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+                    List<ShoppingItem> dialogDefaults = new ArrayList<>(merged.values());
+                    String[] labels = new String[dialogDefaults.size()];
+                    boolean[] selected = new boolean[dialogDefaults.size()];
+                    for (int i = 0; i < dialogDefaults.size(); i++) {
+                        labels[i] = dialogDefaults.get(i).name + " (" + dialogDefaults.get(i).category + ")";
+                    }
+                    final androidx.appcompat.widget.AppCompatCheckBox keepBox = new androidx.appcompat.widget.AppCompatCheckBox(requireContext());
+                    keepBox.setText("Keep selected items after bought");
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle("Pick default items")
+                            .setMultiChoiceItems(labels, selected, (dialog, which, isChecked) -> selected[which] = isChecked)
+                            .setView(keepBox)
+                            .setPositiveButton("Add selected", (dialog, which) -> {
+                                boolean saved = keepBox.isChecked();
+                                for (int i = 0; i < selected.length; i++) {
+                                    if (!selected[i]) continue;
+                                    ShoppingItem base = dialogDefaults.get(i);
+                                    ShoppingItem add = new ShoppingItem(
+                                            RtdbKeyUtil.safeKey(base.name), base.name, base.category, 1, false, saved, System.currentTimeMillis()
+                                    );
+                                    rtdb.upsertShoppingItem(u, add);
+                                    if (saved) rtdb.upsertRecurringDefault(u, add);
+                                }
+                                fetchAndRender();
+                            })
+                            .setNegativeButton("Cancel", null)
+                            .show();
+                });
+            }
+
+            @Override
+            public void onFailure(@NonNull com.google.firebase.database.DatabaseError error) {
+                if (isAdded()) {
+                    requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Failed to load defaults.", Toast.LENGTH_SHORT).show());
+                }
+            }
+        });
     }
 
     private void showItemActions(ShoppingItem item) {
@@ -165,7 +196,13 @@ public class ShoppingFragment extends Fragment {
                     FirebaseUser u = FirebaseAuth.getInstance().getCurrentUser();
                     if (u == null) return;
                     if (which == 0) showChangeAmountDialog(item);
-                    else if (which == 1) { rtdb.setShoppingItemSaved(u, item, !item.saved); fetchAndRender(); }
+                    else if (which == 1) {
+                        boolean nextSaved = !item.saved;
+                        rtdb.setShoppingItemSaved(u, item, nextSaved);
+                        if (nextSaved) rtdb.upsertRecurringDefault(u, item);
+                        else rtdb.deleteRecurringDefault(u, item);
+                        fetchAndRender();
+                    }
                     else { rtdb.deleteShoppingItem(u, item); fetchAndRender(); }
                 }).show();
     }

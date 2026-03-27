@@ -1,21 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:attr/windowBackground"
     android:orientation="vertical">
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/master_toolbar"
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorSurface"
-        app:menu="@menu/menu_general"
-        app:subtitle="@string/menu_general"
-        app:subtitleTextColor="?android:attr/textColorSecondary"
-        app:title="@string/app_name"
-        app:titleTextColor="?android:attr/textColorPrimary" />
+        android:layout_height="44dp"
+        android:background="@color/primary_blue">
+
+        <ImageButton
+            android:id="@+id/master_menu_button"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_more"
+            android:contentDescription="Options menu"
+            android:padding="10dp"
+            android:tint="@color/white" />
+
+    </RelativeLayout>
 
     <FrameLayout
         android:id="@+id/master_content_host"

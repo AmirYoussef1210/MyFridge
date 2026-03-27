@@ -1,65 +1,55 @@
 package com.example.myfridge;
 
 import android.os.Bundle;
-import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ImageButton;
+import android.widget.PopupMenu;
 
 import androidx.annotation.LayoutRes;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.android.material.appbar.MaterialToolbar;
-
 /**
- * Base activity that provides the shared app bar and overflow (General) menu.
+ * Base activity that provides a top-right options button whose popup contains
+ * the Settings entry (and any extras added by subclasses).
  * Subclasses supply their body layout via {@link #getMasterContentLayoutId()} — it is inflated
  * into the {@code master_content_host} frame from {@link R.layout#activity_master}.
  */
 public abstract class MasterActivity extends AppCompatActivity {
-
-    private MaterialToolbar masterToolbar;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_master);
 
-        masterToolbar = findViewById(R.id.master_toolbar);
-        setSupportActionBar(masterToolbar);
+        ImageButton menuButton = findViewById(R.id.master_menu_button);
+        menuButton.setOnClickListener(v -> {
+            PopupMenu popup = new PopupMenu(this, v);
+            popup.getMenuInflater().inflate(R.menu.menu_general, popup.getMenu());
+            popup.setOnMenuItemClickListener(item -> {
+                if (item.getItemId() == R.id.menu_settings) {
+                    onSettingsMenuSelected();
+                    return true;
+                }
+                return onMasterMenuItemSelected(item);
+            });
+            popup.show();
+        });
 
         getLayoutInflater().inflate(getMasterContentLayoutId(), findViewById(R.id.master_content_host), true);
         onAfterMasterContentInflated(savedInstanceState);
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_general, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.menu_settings) {
-            onSettingsMenuSelected();
-            return true;
-        }
-        return onMasterMenuItemSelected(item) || super.onOptionsItemSelected(item);
-    }
-
     /**
-     * Handle toolbar menu items other than {@link R.id#menu_settings}.
+     * Handle popup menu items other than {@link R.id#menu_settings}.
      * @return true if consumed
      */
     protected boolean onMasterMenuItemSelected(MenuItem item) {
         return false;
     }
 
-    /** Called when user chooses Settings from the General overflow menu. */
+    /** Called when user chooses Settings from the options popup menu. */
     protected void onSettingsMenuSelected() {
-    }
-
-    protected MaterialToolbar getMasterToolbar() {
-        return masterToolbar;
     }
 
     @LayoutRes

@@ -11,6 +11,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.MutableData;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.Transaction;
 import com.google.firebase.database.ValueEventListener;
 
@@ -43,6 +44,11 @@ public class RtdbRepository {
     }
 
     public interface ShoppingItemsCallback {
+        void onSuccess(@NonNull List<ShoppingItem> items);
+        void onFailure(@NonNull DatabaseError error);
+    }
+
+    public interface RecurringDefaultsCallback {
         void onSuccess(@NonNull List<ShoppingItem> items);
         void onFailure(@NonNull DatabaseError error);
     }
@@ -385,30 +391,38 @@ public class RtdbRepository {
             @NonNull FirebaseUser user,
             @NonNull EnsureShoppingDefaultsCallback callback
     ) {
-        DatabaseReference listRef = root.child("shopping").child(user.getUid());
+        DatabaseReference listRef = root.child("ShoppingListItems");
         listRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.exists() && snapshot.hasChildren()) {
-                    callback.onSuccess();
-                    return;
+                if (snapshot.exists()) {
+                    for (DataSnapshot itemSnap : snapshot.getChildren()) {
+                        String userId = itemSnap.child("userID").getValue(String.class);
+                        if (user.getUid().equals(userId)) {
+                            callback.onSuccess();
+                            return;
+                        }
+                    }
                 }
 
                 long now = System.currentTimeMillis();
                 Map<String, Object> updates = new HashMap<>();
 
                 for (DefaultShoppingSeed seed : DEFAULT_SHOPPING_SEEDS) {
-                    String categoryKey = RtdbKeyUtil.categoryKey(seed.category);
                     String itemKey = RtdbKeyUtil.safeKey(seed.name);
+                    String storageKey = user.getUid() + "_" + itemKey;
 
                     Map<String, Object> itemMap = new HashMap<>();
+                    itemMap.put("itemId", itemKey);
                     itemMap.put("name", seed.name);
                     itemMap.put("category", seed.category);
-                    itemMap.put("howMany", (long) Math.max(1, seed.howMany));
+                    itemMap.put("requiredAmount", (long) Math.max(1, seed.howMany));
                     itemMap.put("bought", false);
+                    itemMap.put("isRecurring", false);
+                    itemMap.put("userID", user.getUid());
                     itemMap.put("updatedAtMs", now);
 
-                    updates.put(categoryKey + "/" + itemKey, itemMap);
+                    updates.put(storageKey, itemMap);
                 }
 
                 listRef.updateChildren(updates, (error, ref) -> {
@@ -425,38 +439,41 @@ public class RtdbRepository {
     }
 
     public void fetchShoppingList(@NonNull FirebaseUser user, @NonNull ShoppingItemsCallback callback) {
-        root.child("shopping")
-                .child(user.getUid())
+        Query q = root.child("ShoppingListItems")
+                .orderByChild("userID")
+                .equalTo(user.getUid());
+        q
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         List<ShoppingItem> out = new ArrayList<>();
 
-                        for (DataSnapshot categorySnap : snapshot.getChildren()) {
-                            String categoryKey = categorySnap.getKey();
-                            for (DataSnapshot itemSnap : categorySnap.getChildren()) {
-                                String itemKey = itemSnap.getKey();
+                        for (DataSnapshot itemSnap : snapshot.getChildren()) {
+                            String storageKey = itemSnap.getKey();
+                            String itemKey = itemSnap.child("itemId").getValue(String.class);
+                            if (itemKey == null || itemKey.trim().isEmpty()) itemKey = storageKey;
 
-                                String name = itemSnap.child("name").getValue(String.class);
-                                String category = itemSnap.child("category").getValue(String.class);
-                                if (category == null || category.trim().isEmpty()) category = categoryKey;
+                            String name = itemSnap.child("name").getValue(String.class);
+                            String category = itemSnap.child("category").getValue(String.class);
+                            if (category == null || category.trim().isEmpty()) category = "other";
 
-                                Long howManyL = itemSnap.child("howMany").getValue(Long.class);
-                                int howMany = howManyL == null ? 1 : (int) Math.max(0L, howManyL);
+                            Long howManyL = itemSnap.child("requiredAmount").getValue(Long.class);
+                            if (howManyL == null) howManyL = itemSnap.child("howMany").getValue(Long.class);
+                            int howMany = howManyL == null ? 1 : (int) Math.max(0L, howManyL);
 
-                                Boolean boughtB = itemSnap.child("bought").getValue(Boolean.class);
-                                boolean bought = boughtB != null && boughtB;
-                                Boolean savedB = itemSnap.child("saved").getValue(Boolean.class);
-                                boolean saved = savedB != null && savedB;
+                            Boolean boughtB = itemSnap.child("bought").getValue(Boolean.class);
+                            boolean bought = boughtB != null && boughtB;
+                            Boolean recurringB = itemSnap.child("isRecurring").getValue(Boolean.class);
+                            if (recurringB == null) recurringB = itemSnap.child("saved").getValue(Boolean.class);
+                            boolean recurring = recurringB != null && recurringB;
 
-                                Long updatedAtMsL = itemSnap.child("updatedAtMs").getValue(Long.class);
-                                long updatedAtMs = updatedAtMsL == null ? 0L : updatedAtMsL;
+                            Long updatedAtMsL = itemSnap.child("updatedAtMs").getValue(Long.class);
+                            long updatedAtMs = updatedAtMsL == null ? 0L : updatedAtMsL;
 
-                                if (itemKey == null || itemKey.trim().isEmpty()) continue;
-                                if (name == null) name = "";
+                            if (itemKey == null || itemKey.trim().isEmpty()) continue;
+                            if (name == null) name = "";
 
-                                out.add(new ShoppingItem(itemKey, name, category, howMany, bought, saved, updatedAtMs));
-                            }
+                            out.add(new ShoppingItem(itemKey, name, category, howMany, bought, recurring, updatedAtMs));
                         }
 
                         callback.onSuccess(out);
@@ -474,24 +491,21 @@ public class RtdbRepository {
      * bought is set to the provided value.
      */
     public void upsertShoppingItem(@NonNull FirebaseUser user, @NonNull ShoppingItem item) {
-        String uid = user.getUid();
-        String categoryKey = RtdbKeyUtil.categoryKey(item.category);
+        DatabaseReference itemRef = shoppingItemRef(user, item);
         String itemKey = item.key == null ? RtdbKeyUtil.safeKey(item.name) : item.key;
-
-        DatabaseReference itemRef = root.child("shopping")
-                .child(uid)
-                .child(categoryKey)
-                .child(itemKey);
+        String uid = user.getUid();
 
         long now = System.currentTimeMillis();
 
+        itemRef.child("itemId").setValue(itemKey);
         itemRef.child("name").setValue(item.name);
         itemRef.child("category").setValue(item.category);
         itemRef.child("bought").setValue(item.bought);
-        itemRef.child("saved").setValue(item.saved);
+        itemRef.child("isRecurring").setValue(item.saved);
+        itemRef.child("userID").setValue(uid);
         itemRef.child("updatedAtMs").setValue(now);
 
-        itemRef.child("howMany").runTransaction(new Transaction.Handler() {
+        itemRef.child("requiredAmount").runTransaction(new Transaction.Handler() {
             @NonNull
             @Override
             public Transaction.Result doTransaction(@NonNull MutableData currentData) {
@@ -513,14 +527,7 @@ public class RtdbRepository {
             @NonNull ShoppingItem item,
             boolean bought
     ) {
-        String uid = user.getUid();
-        String categoryKey = RtdbKeyUtil.categoryKey(item.category);
-        String itemKey = item.key == null ? RtdbKeyUtil.safeKey(item.name) : item.key;
-
-        DatabaseReference itemRef = root.child("shopping")
-                .child(uid)
-                .child(categoryKey)
-                .child(itemKey);
+        DatabaseReference itemRef = shoppingItemRef(user, item);
 
         Map<String, Object> updates = new HashMap<>();
         updates.put("bought", bought);
@@ -533,13 +540,7 @@ public class RtdbRepository {
             @NonNull ShoppingItem item,
             int newAmount
     ) {
-        String uid = user.getUid();
-        String categoryKey = RtdbKeyUtil.categoryKey(item.category);
-        String itemKey = item.key == null ? RtdbKeyUtil.safeKey(item.name) : item.key;
-        DatabaseReference itemRef = root.child("shopping")
-                .child(uid)
-                .child(categoryKey)
-                .child(itemKey);
+        DatabaseReference itemRef = shoppingItemRef(user, item);
 
         if (newAmount <= 0) {
             itemRef.removeValue();
@@ -547,20 +548,13 @@ public class RtdbRepository {
         }
 
         Map<String, Object> updates = new HashMap<>();
-        updates.put("howMany", (long) newAmount);
+        updates.put("requiredAmount", (long) newAmount);
         updates.put("updatedAtMs", System.currentTimeMillis());
         itemRef.updateChildren(updates);
     }
 
     public void deleteShoppingItem(@NonNull FirebaseUser user, @NonNull ShoppingItem item) {
-        String uid = user.getUid();
-        String categoryKey = RtdbKeyUtil.categoryKey(item.category);
-        String itemKey = item.key == null ? RtdbKeyUtil.safeKey(item.name) : item.key;
-        root.child("shopping")
-                .child(uid)
-                .child(categoryKey)
-                .child(itemKey)
-                .removeValue();
+        shoppingItemRef(user, item).removeValue();
     }
 
     public void setShoppingItemSaved(
@@ -568,34 +562,29 @@ public class RtdbRepository {
             @NonNull ShoppingItem item,
             boolean saved
     ) {
-        String uid = user.getUid();
-        String categoryKey = RtdbKeyUtil.categoryKey(item.category);
-        String itemKey = item.key == null ? RtdbKeyUtil.safeKey(item.name) : item.key;
-        DatabaseReference itemRef = root.child("shopping")
-                .child(uid)
-                .child(categoryKey)
-                .child(itemKey);
+        DatabaseReference itemRef = shoppingItemRef(user, item);
 
         Map<String, Object> updates = new HashMap<>();
-        updates.put("saved", saved);
+        updates.put("isRecurring", saved);
         updates.put("updatedAtMs", System.currentTimeMillis());
         itemRef.updateChildren(updates);
     }
 
     public void clearBoughtUnsavedShoppingItems(@NonNull FirebaseUser user) {
-        DatabaseReference listRef = root.child("shopping").child(user.getUid());
-        listRef.addListenerForSingleValueEvent(new ValueEventListener() {
+        Query q = root.child("ShoppingListItems")
+                .orderByChild("userID")
+                .equalTo(user.getUid());
+        q.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                for (DataSnapshot categorySnap : snapshot.getChildren()) {
-                    for (DataSnapshot itemSnap : categorySnap.getChildren()) {
-                        Boolean boughtB = itemSnap.child("bought").getValue(Boolean.class);
-                        Boolean savedB = itemSnap.child("saved").getValue(Boolean.class);
-                        boolean bought = boughtB != null && boughtB;
-                        boolean saved = savedB != null && savedB;
-                        if (bought && !saved) {
-                            itemSnap.getRef().removeValue();
-                        }
+                for (DataSnapshot itemSnap : snapshot.getChildren()) {
+                    Boolean boughtB = itemSnap.child("bought").getValue(Boolean.class);
+                    Boolean recurringB = itemSnap.child("isRecurring").getValue(Boolean.class);
+                    if (recurringB == null) recurringB = itemSnap.child("saved").getValue(Boolean.class);
+                    boolean bought = boughtB != null && boughtB;
+                    boolean recurring = recurringB != null && recurringB;
+                    if (bought && !recurring) {
+                        itemSnap.getRef().removeValue();
                     }
                 }
             }
@@ -605,6 +594,69 @@ public class RtdbRepository {
                 // No-op
             }
         });
+    }
+
+    public void upsertRecurringDefault(@NonNull FirebaseUser user, @NonNull ShoppingItem item) {
+        String itemKey = item.key == null ? RtdbKeyUtil.safeKey(item.name) : item.key;
+        DatabaseReference defaultRef = root.child("shoppingDefaults")
+                .child(user.getUid())
+                .child(itemKey);
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("itemId", itemKey);
+        updates.put("name", item.name);
+        updates.put("category", item.category);
+        updates.put("requiredAmount", (long) Math.max(1, item.howMany));
+        updates.put("isRecurring", true);
+        updates.put("userID", user.getUid());
+        updates.put("updatedAtMs", System.currentTimeMillis());
+        defaultRef.updateChildren(updates);
+    }
+
+    public void deleteRecurringDefault(@NonNull FirebaseUser user, @NonNull ShoppingItem item) {
+        String itemKey = item.key == null ? RtdbKeyUtil.safeKey(item.name) : item.key;
+        root.child("shoppingDefaults")
+                .child(user.getUid())
+                .child(itemKey)
+                .removeValue();
+    }
+
+    public void fetchRecurringDefaults(@NonNull FirebaseUser user, @NonNull RecurringDefaultsCallback callback) {
+        root.child("shoppingDefaults")
+                .child(user.getUid())
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        List<ShoppingItem> out = new ArrayList<>();
+                        for (DataSnapshot itemSnap : snapshot.getChildren()) {
+                            String itemKey = itemSnap.child("itemId").getValue(String.class);
+                            if (itemKey == null || itemKey.trim().isEmpty()) itemKey = itemSnap.getKey();
+                            if (itemKey == null || itemKey.trim().isEmpty()) continue;
+
+                            String name = itemSnap.child("name").getValue(String.class);
+                            if (name == null) name = "";
+                            String category = itemSnap.child("category").getValue(String.class);
+                            if (category == null || category.trim().isEmpty()) category = "other";
+                            Long requiredAmountL = itemSnap.child("requiredAmount").getValue(Long.class);
+                            int requiredAmount = requiredAmountL == null ? 1 : (int) Math.max(1L, requiredAmountL);
+                            Long updatedAtMsL = itemSnap.child("updatedAtMs").getValue(Long.class);
+                            long updatedAtMs = updatedAtMsL == null ? 0L : updatedAtMsL;
+                            out.add(new ShoppingItem(itemKey, name, category, requiredAmount, false, true, updatedAtMs));
+                        }
+                        callback.onSuccess(out);
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        callback.onFailure(error);
+                    }
+                });
+    }
+
+    private DatabaseReference shoppingItemRef(@NonNull FirebaseUser user, @NonNull ShoppingItem item) {
+        String itemKey = item.key == null ? RtdbKeyUtil.safeKey(item.name) : item.key;
+        String storageKey = user.getUid() + "_" + itemKey;
+        return root.child("ShoppingListItems")
+                .child(storageKey);
     }
 
     private static long parseExpirationKeyToMs(@Nullable String expirationKey) {
