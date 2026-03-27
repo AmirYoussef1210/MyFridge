@@ -3,7 +3,9 @@ package com.example.myfridge;
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -43,6 +45,23 @@ public class SettingsActivity extends AppCompatActivity {
     private SwitchMaterial swExpiryNotifications;
     private TextView tvError;
     private RtdbRepository rtdb;
+    private NetworkChangeReceiver networkReceiver;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        networkReceiver = new NetworkChangeReceiver(this);
+        registerReceiver(networkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (networkReceiver != null) {
+            unregisterReceiver(networkReceiver);
+            networkReceiver = null;
+        }
+    }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {

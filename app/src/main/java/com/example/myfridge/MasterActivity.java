@@ -1,5 +1,7 @@
 package com.example.myfridge;
 
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.widget.ImageButton;
@@ -16,6 +18,24 @@ import androidx.appcompat.app.AppCompatActivity;
  * into the {@code master_content_host} frame from {@link R.layout#activity_master}.
  */
 public abstract class MasterActivity extends AppCompatActivity {
+
+    private NetworkChangeReceiver networkReceiver;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        networkReceiver = new NetworkChangeReceiver(this);
+        registerReceiver(networkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (networkReceiver != null) {
+            unregisterReceiver(networkReceiver);
+            networkReceiver = null;
+        }
+    }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {

@@ -1,6 +1,8 @@
 package com.example.myfridge;
 
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.widget.Button;
@@ -20,6 +22,24 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class OnboardingActivity extends AppCompatActivity {
+
+    private NetworkChangeReceiver networkReceiver;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        networkReceiver = new NetworkChangeReceiver(this);
+        registerReceiver(networkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (networkReceiver != null) {
+            unregisterReceiver(networkReceiver);
+            networkReceiver = null;
+        }
+    }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {

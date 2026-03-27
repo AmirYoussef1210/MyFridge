@@ -10,6 +10,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
@@ -34,6 +36,7 @@ public class addToStorage extends AppCompatActivity {
     String currentPath;
     String lastImageUriString;
     GeminiManager gM;
+    private NetworkChangeReceiver networkReceiver;
     private final String TAG = "addToStorage";
     private final int REQUEST_CAMERA_PERMISSION = 1421;
     private static final int REQUEST_FULL_IMAGE_CAPTURE = 3699;
@@ -90,8 +93,19 @@ public class addToStorage extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        networkReceiver = new NetworkChangeReceiver(this);
+        registerReceiver(networkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (networkReceiver != null) {
+            unregisterReceiver(networkReceiver);
+            networkReceiver = null;
         }
     }
 

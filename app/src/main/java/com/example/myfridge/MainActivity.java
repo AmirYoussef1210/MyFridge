@@ -3,7 +3,9 @@ package com.example.myfridge;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -36,6 +38,23 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvMessage, txtSignup;
     private Button btnLogin;
     private FirebaseAuth mAuth;
+    private NetworkChangeReceiver networkReceiver;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        networkReceiver = new NetworkChangeReceiver(this);
+        registerReceiver(networkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (networkReceiver != null) {
+            unregisterReceiver(networkReceiver);
+            networkReceiver = null;
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

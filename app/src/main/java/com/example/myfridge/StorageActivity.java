@@ -3,6 +3,8 @@ package com.example.myfridge;
 import android.app.Activity;
 import android.app.DatePickerDialog;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
 import android.text.InputType;
 import android.os.Bundle;
 import android.text.Editable;
@@ -60,6 +62,7 @@ public class StorageActivity extends AppCompatActivity {
     private Spinner spCategory;
     private Spinner spSort;
 
+    private NetworkChangeReceiver networkReceiver;
     private final List<Product> allProducts = new ArrayList<>();
     private String selectedCategory = "All";
     private SortMode sortMode = SortMode.RECENTLY_ADDED;
@@ -108,7 +111,18 @@ public class StorageActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        networkReceiver = new NetworkChangeReceiver(this);
+        registerReceiver(networkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
         refresh();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (networkReceiver != null) {
+            unregisterReceiver(networkReceiver);
+            networkReceiver = null;
+        }
     }
 
     private void onAddResult(ActivityResult result) {
