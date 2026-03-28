@@ -61,6 +61,8 @@ public class SettingsFragment extends Fragment {
         swExpiryNotifications.setChecked(ExpiryWorkScheduler.areExpiryNotificationsEnabled(requireContext()));
         loadFromRtdb();
         root.findViewById(R.id.btn_save_settings).setOnClickListener(v -> saveSettings());
+        root.findViewById(R.id.btn_about).setOnClickListener(v ->
+                startActivity(new Intent(requireContext(), com.example.myfridge.AboutActivity.class)));
         root.findViewById(R.id.btn_logout).setOnClickListener(v -> logout());
         return root;
     }

@@ -84,6 +84,9 @@ public class SettingsActivity extends AppCompatActivity {
         Button btnSave = findViewById(R.id.btn_save_settings);
         btnSave.setOnClickListener(v -> saveSettings());
 
+        Button btnAbout = findViewById(R.id.btn_about);
+        btnAbout.setOnClickListener(v -> startActivity(new Intent(this, AboutActivity.class)));
+
         Button btnLogout = findViewById(R.id.btn_logout);
         btnLogout.setOnClickListener(v -> logout());
     }
