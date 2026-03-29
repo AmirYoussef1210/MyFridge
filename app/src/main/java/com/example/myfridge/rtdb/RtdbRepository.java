@@ -570,6 +570,26 @@ public class RtdbRepository {
         itemRef.updateChildren(updates);
     }
 
+    public void clearAllBoughtShoppingItems(@NonNull FirebaseUser user) {
+        Query q = root.child("ShoppingListItems")
+                .orderByChild("userID")
+                .equalTo(user.getUid());
+        q.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                for (DataSnapshot itemSnap : snapshot.getChildren()) {
+                    Boolean boughtB = itemSnap.child("bought").getValue(Boolean.class);
+                    boolean bought = boughtB != null && boughtB;
+                    if (!bought) continue;
+                    itemSnap.getRef().removeValue();
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) { }
+        });
+    }
+
     public void clearBoughtUnsavedShoppingItems(@NonNull FirebaseUser user) {
         Query q = root.child("ShoppingListItems")
                 .orderByChild("userID")

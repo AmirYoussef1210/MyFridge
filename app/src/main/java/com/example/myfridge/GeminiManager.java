@@ -33,6 +33,22 @@ public class GeminiManager {
         return instance;
     }
 
+    public void sendTextPrompt(String prompt, GeminiCallBack callBack) {
+        Content content = new Content.Builder()
+                .addText(prompt)
+                .build();
+        Futures.addCallback(model.generateContent(content), new FutureCallback<GenerateContentResponse>() {
+            @Override
+            public void onSuccess(GenerateContentResponse result) {
+                String text = result.getText();
+                if (text != null) callBack.onSuccess(text);
+                else callBack.onFailure(new Exception("No text in response"));
+            }
+            @Override
+            public void onFailure(Throwable t) { callBack.onFailure(t); }
+        }, executor);
+    }
+
     public void sendTextWIthPhotoPrompt(String prompt, Bitmap bitmap, GeminiCallBack callBack) {
         Content content = new Content.Builder()
                 .addText(prompt)

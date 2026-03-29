@@ -145,6 +145,34 @@
         android:textSize="15sp"
         android:visibility="gone" />
 
+    <!-- Clear bought bar -->
+    <LinearLayout
+        android:id="@+id/layout_clear_bought"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:gravity="end"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_clear_bought"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="Clear bought"
+            android:textColor="#D32F2F"
+            android:textSize="13sp"
+            app:cornerRadius="8dp"
+            app:icon="@android:drawable/ic_menu_delete"
+            app:iconGravity="textStart"
+            app:iconTint="#D32F2F"
+            app:rippleColor="#20D32F2F" />
+
+    </LinearLayout>
+
     <!-- List -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_shopping"

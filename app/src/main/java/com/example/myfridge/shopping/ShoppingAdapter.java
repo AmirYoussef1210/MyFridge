@@ -7,6 +7,7 @@ import android.widget.CheckBox;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.myfridge.R;
@@ -31,6 +32,26 @@ public class ShoppingAdapter extends RecyclerView.Adapter<ShoppingAdapter.VH> {
     public void submit(List<ShoppingItem> newItems) {
         items.clear();
         if (newItems != null) items.addAll(newItems);
+        notifyDataSetChanged();
+    }
+
+    @Nullable
+    public ShoppingItem getByKey(String key) {
+        for (ShoppingItem item : items) {
+            if (key != null && key.equals(item.key)) return item;
+        }
+        return null;
+    }
+
+    public boolean hasBoughtItems() {
+        for (ShoppingItem item : items) {
+            if (item.bought) return true;
+        }
+        return false;
+    }
+
+    public void removeBoughtItems() {
+        items.removeIf(item -> item.bought);
         notifyDataSetChanged();
     }
 

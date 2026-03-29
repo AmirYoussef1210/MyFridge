@@ -38,6 +38,7 @@ public class ShoppingFragment extends Fragment {
     private EditText etName;
     private EditText etHowMany;
     private androidx.appcompat.widget.AppCompatCheckBox cbKeepWhenBought;
+    private View layoutClearBought;
     private @Nullable FirebaseUser user;
 
     private final List<ShoppingItem> baseDefaultOptions = Arrays.asList(
@@ -72,12 +73,15 @@ public class ShoppingFragment extends Fragment {
             @Override public void onBoughtChanged(@NonNull ShoppingItem item, boolean bought) {
                 FirebaseUser u = FirebaseAuth.getInstance().getCurrentUser();
                 if (u != null) rtdb.setShoppingItemBought(u, item, bought);
+                layoutClearBought.setVisibility(adapter.hasBoughtItems() ? View.VISIBLE : View.GONE);
             }
             @Override public void onItemClicked(@NonNull ShoppingItem item) { showItemActions(item); }
         });
 
+        layoutClearBought = root.findViewById(R.id.layout_clear_bought);
         root.findViewById(R.id.btn_shopping_add).setOnClickListener(v -> addProductToShopping());
         root.findViewById(R.id.btn_shopping_defaults).setOnClickListener(v -> showDefaultPickerDialog());
+        root.findViewById(R.id.btn_clear_bought).setOnClickListener(v -> confirmClearBought());
         user = FirebaseAuth.getInstance().getCurrentUser();
         return root;
     }
@@ -103,6 +107,9 @@ public class ShoppingFragment extends Fragment {
                     adapter.submit(items);
                     boolean empty = items == null || items.isEmpty();
                     tvEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
+                    boolean hasBought = false;
+                    if (items != null) for (ShoppingItem i : items) if (i.bought) { hasBought = true; break; }
+                    layoutClearBought.setVisibility(hasBought ? View.VISIBLE : View.GONE);
                 });
             }
             @Override public void onFailure(com.google.firebase.database.DatabaseError error) {
@@ -123,7 +130,23 @@ public class ShoppingFragment extends Fragment {
         }
         howMany = Math.max(1, howMany);
         boolean saved = cbKeepWhenBought.isChecked();
-        ShoppingItem item = new ShoppingItem(RtdbKeyUtil.safeKey(name), name, "other", howMany, false, saved, System.currentTimeMillis());
+        String key = RtdbKeyUtil.safeKey(name);
+        ShoppingItem existing = adapter.getByKey(key);
+        if (existing != null) {
+            if (saved && !existing.saved) {
+                // User wants to mark an existing item as saved — update only that flag
+                rtdb.setShoppingItemSaved(u, existing, true);
+                rtdb.upsertRecurringDefault(u, existing);
+                etName.setText("");
+                etHowMany.setText("");
+                cbKeepWhenBought.setChecked(false);
+                fetchAndRender();
+            } else {
+                Toast.makeText(requireContext(), "\"" + name + "\" is already in the list.", Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
+        ShoppingItem item = new ShoppingItem(key, name, "other", howMany, false, saved, System.currentTimeMillis());
         rtdb.upsertShoppingItem(u, item);
         if (saved) rtdb.upsertRecurringDefault(u, item);
         etName.setText("");
@@ -205,6 +228,22 @@ public class ShoppingFragment extends Fragment {
                     }
                     else { rtdb.deleteShoppingItem(u, item); fetchAndRender(); }
                 }).show();
+    }
+
+    private void confirmClearBought() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Clear bought items")
+                .setMessage("Remove all checked items from the list?")
+                .setPositiveButton("Clear", (dialog, which) -> {
+                    FirebaseUser u = FirebaseAuth.getInstance().getCurrentUser();
+                    if (u == null) return;
+                    rtdb.clearAllBoughtShoppingItems(u);
+                    adapter.removeBoughtItems();
+                    layoutClearBought.setVisibility(View.GONE);
+                    tvEmpty.setVisibility(adapter.getItemCount() == 0 ? View.VISIBLE : View.GONE);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void showChangeAmountDialog(ShoppingItem item) {
