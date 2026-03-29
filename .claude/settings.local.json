@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//mnt/c/Users/אמיר/AndroidStudioProjects/**)",
+      "Bash(adb logcat:*)"
+    ]
+  }
+}

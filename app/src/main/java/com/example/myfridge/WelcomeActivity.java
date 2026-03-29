@@ -3,7 +3,10 @@ package com.example.myfridge;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.widget.ImageView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
@@ -34,11 +37,37 @@ public class WelcomeActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_welcome);
 
+        // Downsample the large background image to avoid canvas size crash.
+        // inScaled=false prevents Android from density-scaling the bitmap up before we sample it.
+        ImageView bg = findViewById(R.id.img_background);
+        BitmapFactory.Options opts = new BitmapFactory.Options();
+        opts.inScaled = false;
+        opts.inJustDecodeBounds = true;
+        BitmapFactory.decodeResource(getResources(), R.drawable.welcome_screen, opts);
+        opts.inSampleSize = calculateInSampleSize(opts, 1080, 1920);
+        opts.inJustDecodeBounds = false;
+        Bitmap bmp = BitmapFactory.decodeResource(getResources(), R.drawable.welcome_screen, opts);
+        bg.setImageBitmap(bmp);
+
         findViewById(R.id.btn_sign_in).setOnClickListener(v ->
                 startActivity(new Intent(this, MainActivity.class)));
 
         findViewById(R.id.btn_create_account).setOnClickListener(v ->
                 startActivity(new Intent(this, SignupActivity.class)));
+    }
+
+    private static int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        int height = options.outHeight;
+        int width = options.outWidth;
+        int inSampleSize = 1;
+        if (height > reqHeight || width > reqWidth) {
+            int halfHeight = height / 2;
+            int halfWidth = width / 2;
+            while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+        return inSampleSize;
     }
 
     private void routeAfterLogin(FirebaseUser user) {
