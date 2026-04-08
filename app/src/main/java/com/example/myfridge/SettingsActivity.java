@@ -34,6 +34,19 @@ import com.google.firebase.database.FirebaseDatabase;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Standalone settings screen (Activity variant — also available as
+ * {@link com.example.myfridge.fragments.SettingsFragment}).
+ * <p>
+ * Loads the current user preferences (units, expiry-window days, notification
+ * toggle) from RTDB and lets the user save updated values. Also exposes
+ * navigation to {@link AboutActivity} and a logout action.
+ * </p>
+ * <p>
+ * On Android 13+ (API 33), requests the {@code POST_NOTIFICATIONS} runtime
+ * permission when the expiry-notification switch is turned on.
+ * </p>
+ */
 public class SettingsActivity extends AppCompatActivity {
 
     private static final int REQ_POST_NOTIFICATIONS = 5401;
@@ -91,6 +104,11 @@ public class SettingsActivity extends AppCompatActivity {
         btnLogout.setOnClickListener(v -> logout());
     }
 
+    /**
+     * Reads the authenticated user's preferences from RTDB and pre-populates
+     * the unit radio buttons and expiry-days field. Defaults to 2 days if the
+     * fetch fails.
+     */
     private void loadFromRtdb() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) return;
@@ -116,6 +134,12 @@ public class SettingsActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Validates the unit selection and expiry-window value (1–30), then writes
+     * both to RTDB. Also applies the notification toggle: schedules or cancels
+     * the {@link com.example.myfridge.notifications.ExpiryWorkScheduler} and
+     * requests the POST_NOTIFICATIONS permission if needed.
+     */
     private void saveSettings() {
         tvError.setText("");
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
@@ -181,6 +205,10 @@ public class SettingsActivity extends AppCompatActivity {
                 });
     }
 
+    /**
+     * On Android 13+ (API 33), requests the {@code POST_NOTIFICATIONS} runtime
+     * permission if it has not already been granted. No-op on earlier API levels.
+     */
     private void requestPostNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT < 33) return;
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -204,6 +232,11 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Cancels scheduled expiry work, signs the user out of Firebase, clears the
+     * "stay logged in" shared-preference flag and navigates back to
+     * {@link MainActivity} with a cleared back stack.
+     */
     private void logout() {
         ExpiryWorkScheduler.cancel(this);
 

@@ -14,12 +14,30 @@ import com.example.myfridge.R;
 
 import java.util.List;
 
+/**
+ * Utility class for creating and displaying expiry-alert notifications.
+ * <p>
+ * Manages the {@value #CHANNEL_ID} notification channel (required on
+ * Android 8.0+) and produces a single summary notification that lists all
+ * products expiring within the user's configured window.
+ * </p>
+ * <p>This class is not instantiable.</p>
+ */
 public final class ExpiryNotificationHelper {
 
+    /** ID of the expiry-alerts notification channel. */
     public static final String CHANNEL_ID = "expiry_alerts";
 
+    /** Prevents instantiation. */
     private ExpiryNotificationHelper() {}
 
+    /**
+     * Creates the expiry-alerts notification channel on Android 8.0+ (API 26+).
+     * Safe to call multiple times; no-op if the channel already exists or if the
+     * device runs below API 26.
+     *
+     * @param context any context; application context is used internally
+     */
     public static void createChannel(Context context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
         NotificationChannel channel = new NotificationChannel(
@@ -35,7 +53,18 @@ public final class ExpiryNotificationHelper {
     }
 
     /**
-     * Single summary notification listing products expiring within the user's window.
+     * Posts a single summary notification that lists all products expiring within
+     * the user's configured window. At most 8 lines are shown inline; a trailing
+     * ellipsis is appended when more items exist.
+     * <p>
+     * The notification is expandable (uses {@link androidx.core.app.NotificationCompat.BigTextStyle})
+     * and opens {@link com.example.myfridge.MainScreenActivity} when tapped.
+     * </p>
+     * <p>No-op if {@code productLines} is {@code null} or empty.</p>
+     *
+     * @param context      any context; application context is used internally
+     * @param productLines list of formatted product strings to include in the
+     *                     notification body
      */
     public static void showExpiringSoonNotification(Context context, List<String> productLines) {
         if (productLines == null || productLines.isEmpty()) return;

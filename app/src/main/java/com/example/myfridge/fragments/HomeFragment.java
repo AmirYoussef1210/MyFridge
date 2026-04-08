@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -30,6 +31,7 @@ public class HomeFragment extends Fragment {
     private TextView txtAboutToExpire;
     private TextView txtDairyItems;
     private TextView txtProduceItems;
+    private ProgressBar progressLoading;
     private RtdbRepository rtdb;
 
     @Nullable
@@ -42,6 +44,7 @@ public class HomeFragment extends Fragment {
         txtAboutToExpire = root.findViewById(R.id.txt_about_to_expire);
         txtDairyItems = root.findViewById(R.id.txt_dairy_items);
         txtProduceItems = root.findViewById(R.id.txt_produce_items);
+        progressLoading = root.findViewById(R.id.progress_loading);
         root.findViewById(R.id.row_about_to_expire).setOnClickListener(v -> openInventory());
         root.findViewById(R.id.row_shopping_cta).setOnClickListener(v -> openShopping());
         return root;
@@ -110,6 +113,7 @@ public class HomeFragment extends Fragment {
             return;
         }
 
+        progressLoading.setVisibility(View.VISIBLE);
         rtdb.fetchUserPreferences(user, new RtdbRepository.UserPrefsCallback() {
             @Override
             public void onSuccess(String units, int daysBeforeExpireChoice) {
@@ -119,6 +123,7 @@ public class HomeFragment extends Fragment {
                     public void onSuccess(List<Product> products) {
                         if (!isAdded()) return;
                         requireActivity().runOnUiThread(() -> {
+                            progressLoading.setVisibility(View.GONE);
                             int totalAmount = 0;
                             int aboutToExpireCount = 0;
                             int dairyAmount = 0;
@@ -147,6 +152,7 @@ public class HomeFragment extends Fragment {
                     public void onFailure(DatabaseError error) {
                         if (!isAdded()) return;
                         requireActivity().runOnUiThread(() -> {
+                            progressLoading.setVisibility(View.GONE);
                             txtTotalProducts.setText("0");
                             txtAboutToExpire.setText("About to expire: 0");
                             txtDairyItems.setText("0 Items");
@@ -160,6 +166,7 @@ public class HomeFragment extends Fragment {
             public void onFailure(DatabaseError error) {
                 if (!isAdded()) return;
                 requireActivity().runOnUiThread(() -> {
+                    progressLoading.setVisibility(View.GONE);
                     txtTotalProducts.setText("0");
                     txtAboutToExpire.setText("About to expire: 0");
                     txtDairyItems.setText("0 Items");

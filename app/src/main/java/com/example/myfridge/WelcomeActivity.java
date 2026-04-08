@@ -18,8 +18,28 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+/**
+ * Splash / welcome screen shown on first launch or when the user is not
+ * automatically logged in.
+ * <p>
+ * If the user previously enabled "stay logged in" and still has a valid
+ * Firebase session, the screen is skipped and {@link #routeAfterLogin} is
+ * called immediately. Otherwise the welcome layout is displayed with
+ * "Sign in" and "Create account" buttons.
+ * </p>
+ * <p>
+ * The background bitmap is downsampled to avoid an OOM / canvas-size crash
+ * on devices with a large drawable source.
+ * </p>
+ */
 public class WelcomeActivity extends AppCompatActivity {
 
+    /**
+     * Initialises the activity, checks the auto-login preference and either
+     * routes the user straight to the app or shows the welcome screen.
+     *
+     * @param savedInstanceState previously saved instance state (may be {@code null})
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
@@ -56,6 +76,17 @@ public class WelcomeActivity extends AppCompatActivity {
                 startActivity(new Intent(this, SignupActivity.class)));
     }
 
+    /**
+     * Calculates the largest power-of-two sample size that keeps the decoded
+     * bitmap at least as large as the requested dimensions, to avoid loading an
+     * unnecessarily large image into memory.
+     *
+     * @param options   {@link BitmapFactory.Options} populated after a
+     *                  {@code inJustDecodeBounds = true} decode pass
+     * @param reqWidth  minimum desired width in pixels
+     * @param reqHeight minimum desired height in pixels
+     * @return a power-of-two {@code inSampleSize} value (≥ 1)
+     */
     private static int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
         int height = options.outHeight;
         int width = options.outWidth;
@@ -70,6 +101,13 @@ public class WelcomeActivity extends AppCompatActivity {
         return inSampleSize;
     }
 
+    /**
+     * Reads the user's RTDB preferences and navigates to {@link OnboardingActivity}
+     * if units or expiry-window are missing, otherwise to {@link MainScreenActivity}.
+     * The back stack is cleared so the user cannot return to the welcome screen.
+     *
+     * @param user the currently authenticated Firebase user
+     */
     private void routeAfterLogin(FirebaseUser user) {
         FirebaseDatabase.getInstance()
                 .getReference()

@@ -8,8 +8,21 @@ import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+/**
+ * Simple "About" screen that displays information about the application.
+ * <p>
+ * Provides a clickable GitHub link that prompts the user to confirm before
+ * opening the developer's GitHub profile in the device browser.
+ * </p>
+ */
 public class AboutActivity extends AppCompatActivity {
 
+    /**
+     * Inflates the about layout and attaches a click listener to the GitHub
+     * text view that shows a confirmation dialog before launching the browser.
+     *
+     * @param savedInstanceState previously saved instance state (may be {@code null})
+     */
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

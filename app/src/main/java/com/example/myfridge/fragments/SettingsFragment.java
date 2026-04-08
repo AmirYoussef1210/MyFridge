@@ -12,6 +12,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
@@ -44,6 +45,7 @@ public class SettingsFragment extends Fragment {
     private EditText etDays;
     private SwitchMaterial swExpiryNotifications;
     private TextView tvError;
+    private ProgressBar progressLoading;
     private RtdbRepository rtdb;
 
     @Nullable
@@ -57,6 +59,7 @@ public class SettingsFragment extends Fragment {
         etDays = root.findViewById(R.id.et_settings_days_before_expire);
         swExpiryNotifications = root.findViewById(R.id.sw_expiry_notifications);
         tvError = root.findViewById(R.id.tv_settings_error);
+        progressLoading = root.findViewById(R.id.progress_loading);
         ExpiryNotificationHelper.createChannel(requireContext());
         swExpiryNotifications.setChecked(ExpiryWorkScheduler.areExpiryNotificationsEnabled(requireContext()));
         loadFromRtdb();
@@ -70,17 +73,23 @@ public class SettingsFragment extends Fragment {
     private void loadFromRtdb() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) return;
+        progressLoading.setVisibility(View.VISIBLE);
         rtdb.fetchUserPreferences(user, new RtdbRepository.UserPrefsCallback() {
             @Override public void onSuccess(@NonNull String units, int daysBeforeExpireChoice) {
                 if (!isAdded()) return;
                 requireActivity().runOnUiThread(() -> {
+                    progressLoading.setVisibility(View.GONE);
                     etDays.setText(String.valueOf(daysBeforeExpireChoice));
                     String u = units == null ? "" : units.trim().toLowerCase();
                     if ("imperial".equals(u)) rbImperial.setChecked(true); else rbMetric.setChecked(true);
                 });
             }
             @Override public void onFailure(@NonNull com.google.firebase.database.DatabaseError error) {
-                if (isAdded()) requireActivity().runOnUiThread(() -> etDays.setText("2"));
+                if (!isAdded()) return;
+                requireActivity().runOnUiThread(() -> {
+                    progressLoading.setVisibility(View.GONE);
+                    etDays.setText("2");
+                });
             }
         });
     }

@@ -31,6 +31,19 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+/**
+ * Login screen and application entry point.
+ * <p>
+ * On creation, checks whether the user has previously chosen "stay logged in"
+ * with an active Firebase session; if so, it routes directly to
+ * {@link MainScreenActivity} (or {@link OnboardingActivity} if preferences are
+ * incomplete), bypassing the login form entirely.
+ * </p>
+ * <p>
+ * Registers a {@link NetworkChangeReceiver} while visible to show a dialog when
+ * connectivity is lost.
+ * </p>
+ */
 public class MainActivity extends AppCompatActivity {
 
     private EditText etEmail, etPassword;
@@ -40,6 +53,10 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private NetworkChangeReceiver networkReceiver;
 
+    /**
+     * Registers the network-change receiver so the no-internet dialog is shown
+     * while this activity is in the foreground.
+     */
     @Override
     protected void onResume() {
         super.onResume();
@@ -47,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
         registerReceiver(networkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
     }
 
+    /** Unregisters the network-change receiver when the activity is no longer visible. */
     @Override
     protected void onPause() {
         super.onPause();
@@ -56,6 +74,13 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Initialises the activity. Enforces light-mode, checks the "stay logged in"
+     * preference and either skips straight to the main screen or inflates the
+     * login layout.
+     *
+     * @param savedInstanceState previously saved instance state (may be {@code null})
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         // Force light mode globally
@@ -97,6 +122,12 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Reads the email and password fields, validates they are non-empty, then
+     * calls {@link FirebaseAuth#signInWithEmailAndPassword}. On success, persists
+     * the "stay logged in" flag if the checkbox is checked and delegates to
+     * {@link #routeAfterLogin}.
+     */
     private void login() {
         String email = etEmail.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
@@ -131,6 +162,14 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
+    /**
+     * Checks whether the authenticated user has completed onboarding (units and
+     * expiry-window preference set in RTDB). Navigates to {@link OnboardingActivity}
+     * if preferences are missing, otherwise to {@link MainScreenActivity}.
+     *
+     * @param user the currently signed-in Firebase user; if {@code null} the login
+     *             layout is re-displayed
+     */
     private void routeAfterLogin(FirebaseUser user) {
         if (user == null) {
             setContentView(R.layout.activity_main);
@@ -161,6 +200,12 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
+    /**
+     * Maps Firebase authentication exceptions to human-readable error messages
+     * and displays them in {@code tvMessage}.
+     *
+     * @param exp the exception thrown by the failed sign-in task; may be {@code null}
+     */
     private void handleError(Exception exp) {
         String message;
         if (exp instanceof FirebaseAuthInvalidUserException) {

@@ -50,7 +50,6 @@ dependencies {
     implementation "com.google.ai.client.generativeai:generativeai:0.9.0"
     implementation "com.google.guava:guava:31.1-android"
     implementation libs.firebase.database
-    implementation "androidx.work:work-runtime:2.9.0"
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core

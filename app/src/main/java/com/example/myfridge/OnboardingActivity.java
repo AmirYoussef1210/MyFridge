@@ -21,10 +21,25 @@ import com.google.firebase.database.FirebaseDatabase;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * First-time setup screen shown after registration or when user preferences are
+ * incomplete.
+ * <p>
+ * Asks the user to choose a measurement unit system (metric / imperial) and the
+ * number of days before expiry at which a notification should be triggered
+ * (1–30 days). Values are written to {@code /users/<uid>} in Firebase RTDB;
+ * on success the user is sent to {@link MainScreenActivity}.
+ * </p>
+ * <p>
+ * Redirects to {@link MainActivity} if no authenticated user is found, and
+ * registers a {@link NetworkChangeReceiver} while in the foreground.
+ * </p>
+ */
 public class OnboardingActivity extends AppCompatActivity {
 
     private NetworkChangeReceiver networkReceiver;
 
+    /** Registers the network receiver while the activity is in the foreground. */
     @Override
     protected void onResume() {
         super.onResume();
@@ -41,6 +56,13 @@ public class OnboardingActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Inflates the onboarding layout, personalises the greeting with the user's
+     * display name, and attaches a save listener that validates and persists the
+     * chosen units and expiry-window to RTDB.
+     *
+     * @param savedInstanceState previously saved instance state (may be {@code null})
+     */
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

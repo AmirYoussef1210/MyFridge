@@ -45,7 +45,23 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 
+/**
+ * Standalone inventory management screen (Activity variant).
+ * <p>
+ * Displays the user's fridge inventory as a {@link androidx.recyclerview.widget.RecyclerView}
+ * driven by {@link com.example.myfridge.storage.ProductAdapter}. Supports:
+ * <ul>
+ *   <li>Free-text search across name, category and unit</li>
+ *   <li>Category filtering via a {@link android.widget.Spinner}</li>
+ *   <li>Sorting by recently-added, A→Z and Z→A</li>
+ *   <li>"About to expire" checkbox filter using the user's configured expiry window</li>
+ *   <li>Adding products via {@link addToStorage} (camera or manual)</li>
+ *   <li>Editing amount, expiry date, or removing a product via a dialog</li>
+ * </ul>
+ * </p>
+ */
 public class StorageActivity extends AppCompatActivity {
+    /** Intent extra key for the product JSON string returned by {@link addToStorage}. */
     public static final String EXTRA_PRODUCT_JSON = "extra_product_json";
 
     private enum SortMode {
@@ -125,6 +141,14 @@ public class StorageActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Handles the result returned by {@link addToStorage}. Parses the product
+     * JSON from the intent extra, creates a {@link com.example.myfridge.storage.Product}
+     * via {@link com.example.myfridge.storage.Product#createNew} and upserts it
+     * to the RTDB inventory, then refreshes the list.
+     *
+     * @param result the activity result from the {@link addToStorage} launcher
+     */
     private void onAddResult(ActivityResult result) {
         if (result.getResultCode() != Activity.RESULT_OK) {
             return;
@@ -159,6 +183,11 @@ public class StorageActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Fetches the full inventory and the user's expiry-window preference from
+     * RTDB, then calls {@link #applyAllFilters} to re-render the list.
+     * Clears the list gracefully if there is no authenticated user.
+     */
     private void refresh() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) {
@@ -202,6 +231,12 @@ public class StorageActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Shows an options dialog for the tapped product with actions:
+     * "Change amount", "Change expiration date", and "Remove".
+     *
+     * @param product the product the user tapped
+     */
     private void showProductOptionsDialog(Product product) {
         String[] options = new String[]{"Change amount", "Change expiration date", "Remove"};
 
@@ -219,6 +254,12 @@ public class StorageActivity extends AppCompatActivity {
                 .show();
     }
 
+    /**
+     * Shows a numeric-input dialog to update the amount of a product.
+     * If the new amount is ≤ 0 the product node is removed from RTDB.
+     *
+     * @param product the product whose amount will be changed
+     */
     private void showChangeAmountDialog(Product product) {
         final EditText input = new EditText(this);
         input.setInputType(InputType.TYPE_CLASS_NUMBER);
@@ -245,6 +286,12 @@ public class StorageActivity extends AppCompatActivity {
                 .show();
     }
 
+    /**
+     * Shows a confirmation dialog before permanently deleting a product from
+     * the RTDB inventory.
+     *
+     * @param product the product to remove
+     */
     private void confirmRemoveProduct(Product product) {
         new AlertDialog.Builder(this)
                 .setTitle("Remove product")
@@ -260,6 +307,14 @@ public class StorageActivity extends AppCompatActivity {
                 .show();
     }
 
+    /**
+     * Opens a {@link android.app.DatePickerDialog} seeded to the product's
+     * current expiry date. Enforces a minimum date of tomorrow and delegates
+     * to {@link com.example.myfridge.rtdb.RtdbRepository#changeInventoryExpirationDate}
+     * on confirmation.
+     *
+     * @param product the product whose expiry date will be changed
+     */
     private void showChangeExpirationDateDialog(Product product) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) return;
@@ -319,6 +374,11 @@ public class StorageActivity extends AppCompatActivity {
         dlg.show();
     }
 
+    /**
+     * Filters {@link #allProducts} using the current search query, selected
+     * category, "about to expire" checkbox state, and sort mode, then submits
+     * the result to the adapter and updates the count label.
+     */
     private void applyAllFilters() {
         String q = etSearch.getText() == null ? "" : etSearch.getText().toString().trim().toLowerCase();
         boolean onlyExpiringSoon = cbAboutToExpire.isChecked();
@@ -344,6 +404,11 @@ public class StorageActivity extends AppCompatActivity {
         txtCount.setText(filtered.size() + " / " + allProducts.size());
     }
 
+    /**
+     * Builds the category spinner from the distinct categories present in
+     * {@link #allProducts} (prepended with "All") and restores the previously
+     * selected category if it still exists.
+     */
     private void setupCategorySpinner() {
         LinkedHashSet<String> categories = new LinkedHashSet<>();
         categories.add("All");
@@ -376,6 +441,11 @@ public class StorageActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Initialises the sort spinner with the three sort options
+     * (recently-added, A→Z, Z→A) and wires its selection listener to
+     * {@link #applyAllFilters}.
+     */
     private void setupSortSpinner() {
         List<String> options = new ArrayList<>();
         options.add("Recently added");
@@ -398,6 +468,11 @@ public class StorageActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Sorts {@code list} in-place according to the current {@link SortMode}.
+     *
+     * @param list the list of products to sort; may be {@code null} (no-op)
+     */
     private void applySort(List<Product> list) {
         if (list == null) return;
         if (sortMode == SortMode.RECENTLY_ADDED) {
@@ -409,20 +484,49 @@ public class StorageActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Returns {@code true} if the product's name, category or unit contains
+     * the lower-case query string {@code q}.
+     *
+     * @param p the product to test
+     * @param q lower-cased search query
+     * @return {@code true} if any field matches
+     */
     private static boolean matchesSearch(Product p, String q) {
         return contains(p.name, q) || contains(p.category, q) || contains(p.unit, q);
     }
 
+    /**
+     * Null-safe substring check (case-insensitive, as {@code q} is pre-lowercased).
+     *
+     * @param field the field to search in; may be {@code null}
+     * @param q     the lower-cased query to look for
+     * @return {@code true} if {@code field} is non-null and contains {@code q}
+     */
     private static boolean contains(String field, String q) {
         return field != null && field.toLowerCase().contains(q);
     }
 
+    /**
+     * Null-safe, trimming case-insensitive equality check.
+     *
+     * @param a first string; may be {@code null}
+     * @param b second string; may be {@code null}
+     * @return {@code true} if both are non-null and equal ignoring case after trimming
+     */
     private static boolean equalsIgnoreCase(String a, String b) {
         if (a == null && b == null) return true;
         if (a == null || b == null) return false;
         return a.trim().equalsIgnoreCase(b.trim());
     }
 
+    /**
+     * Returns a trimmed, lower-cased version of {@code s}, or an empty string
+     * if {@code s} is {@code null}.
+     *
+     * @param s the string to normalise; may be {@code null}
+     * @return a non-null lower-cased, trimmed string
+     */
     private static String safeLower(String s) {
         return s == null ? "" : s.trim().toLowerCase();
     }

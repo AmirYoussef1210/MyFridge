@@ -4,9 +4,22 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Utility class for parsing natural-language shelf-life strings returned by the
+ * Gemini AI model into millisecond durations.
+ * <p>
+ * Handles the following units (singular and plural, case-insensitive):
+ * {@code day}, {@code week}, {@code month} (approximated as 30 days),
+ * {@code year} (approximated as 365 days).
+ * </p>
+ * <p>
+ * This class is not instantiable.
+ * </p>
+ */
 public final class ShelfLifeParser {
     private static final Pattern P = Pattern.compile("(\\d+)\\s*(day|days|week|weeks|month|months|year|years)", Pattern.CASE_INSENSITIVE);
 
+    /** Prevents instantiation. */
     private ShelfLifeParser() {}
 
     /**

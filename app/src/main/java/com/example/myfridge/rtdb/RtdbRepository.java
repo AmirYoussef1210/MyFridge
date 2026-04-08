@@ -24,37 +24,124 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * Repository class for all Firebase Realtime Database operations in MyFridge.
+ * <p>
+ * Covers three data domains:
+ * <ol>
+ *   <li><b>Inventory</b> — stored under {@code /inventory/<uid>/<category>/<expiration>/<productKey>}</li>
+ *   <li><b>Shopping list</b> — stored under {@code /ShoppingListItems/<uid_itemKey>}</li>
+ *   <li><b>User preferences</b> — stored under {@code /users/<uid>}</li>
+ * </ol>
+ * All database reads are single-value event listeners; writes use a mix of
+ * {@code setValue}, {@code updateChildren} and Firebase Transactions for
+ * atomic counter increments.
+ * </p>
+ * <p>
+ * Callbacks are always invoked on the Firebase listener thread; callers must
+ * dispatch to the main thread with {@code runOnUiThread} when updating UI.
+ * </p>
+ */
 public class RtdbRepository {
 
     private final DatabaseReference root;
 
+    /**
+     * Creates a new repository instance rooted at the default Firebase database reference.
+     */
     public RtdbRepository() {
         this.root = FirebaseDatabase.getInstance().getReference();
     }
 
+    /**
+     * Callback for asynchronous inventory fetch operations.
+     */
     public interface ProductsCallback {
+        /**
+         * Called with the full list of products on success.
+         *
+         * @param products non-null list (may be empty)
+         */
         void onSuccess(@NonNull List<Product> products);
+
+        /**
+         * Called when the database operation is cancelled or fails.
+         *
+         * @param error the Firebase error
+         */
         void onFailure(@NonNull DatabaseError error);
     }
 
+    /**
+     * Callback for asynchronous user-preference fetch operations.
+     */
     public interface UserPrefsCallback {
+        /**
+         * Called with the user's saved preferences.
+         *
+         * @param units                 measurement unit system; empty string if not set
+         * @param daysBeforeExpireChoice expiry-alert window in days (clamped 1–30, default 2)
+         */
         void onSuccess(@NonNull String units, int daysBeforeExpireChoice);
 
+        /**
+         * Called when the database operation is cancelled or fails.
+         *
+         * @param error the Firebase error
+         */
         void onFailure(@NonNull DatabaseError error);
     }
 
+    /**
+     * Callback for asynchronous shopping-list fetch operations.
+     */
     public interface ShoppingItemsCallback {
+        /**
+         * Called with the user's current shopping list.
+         *
+         * @param items non-null list (may be empty)
+         */
         void onSuccess(@NonNull List<ShoppingItem> items);
+
+        /**
+         * Called when the database operation is cancelled or fails.
+         *
+         * @param error the Firebase error
+         */
         void onFailure(@NonNull DatabaseError error);
     }
 
+    /**
+     * Callback for asynchronous recurring-defaults fetch operations.
+     */
     public interface RecurringDefaultsCallback {
+        /**
+         * Called with the list of items the user has marked as recurring defaults.
+         *
+         * @param items non-null list (may be empty)
+         */
         void onSuccess(@NonNull List<ShoppingItem> items);
+
+        /**
+         * Called when the database operation is cancelled or fails.
+         *
+         * @param error the Firebase error
+         */
         void onFailure(@NonNull DatabaseError error);
     }
 
+    /**
+     * Callback used by {@link #ensureShoppingListDefaults} to signal completion.
+     */
     public interface EnsureShoppingDefaultsCallback {
+        /** Called when defaults have been seeded or already exist. */
         void onSuccess();
+
+        /**
+         * Called when the database operation is cancelled or fails.
+         *
+         * @param error the Firebase error
+         */
         void onFailure(@NonNull DatabaseError error);
     }
 
@@ -180,6 +267,14 @@ public class RtdbRepository {
         ensureProductId(user, productRef);
     }
 
+    /**
+     * Sets the amount of the given product in RTDB. If {@code newAmount ≤ 0}
+     * the entire product node is removed.
+     *
+     * @param user      the authenticated user
+     * @param p         the product to update
+     * @param newAmount the new quantity; must be ≥ 0 (0 removes the node)
+     */
     public void updateInventoryAmount(@NonNull FirebaseUser user, @NonNull Product p, int newAmount) {
         DatabaseReference ref = productRef(user, p).child("amount");
         if (newAmount <= 0) {
@@ -190,6 +285,12 @@ public class RtdbRepository {
         }
     }
 
+    /**
+     * Permanently removes the product node from the RTDB inventory.
+     *
+     * @param user the authenticated user
+     * @param p    the product to delete
+     */
     public void deleteInventoryItem(@NonNull FirebaseUser user, @NonNull Product p) {
         productRef(user, p).removeValue();
     }
@@ -250,6 +351,14 @@ public class RtdbRepository {
         ensureProductId(user, newRef);
     }
 
+    /**
+     * Builds the Firebase {@link DatabaseReference} for a product node under
+     * {@code /inventory/<uid>/<categoryKey>/<expirationKey>/<productKey>}.
+     *
+     * @param user the authenticated user
+     * @param p    the product whose reference to build
+     * @return the database reference for the product node
+     */
     private DatabaseReference productRef(@NonNull FirebaseUser user, @NonNull Product p) {
         String uid = user.getUid();
         String categoryKey = RtdbKeyUtil.categoryKey(p.category);
@@ -263,6 +372,14 @@ public class RtdbRepository {
                 .child(productKey);
     }
 
+    /**
+     * Assigns a numeric {@code productID} to the product node if one does not
+     * already exist. Uses a per-user atomic counter at
+     * {@code /counters/<uid>/nextProductId} to generate sequential IDs.
+     *
+     * @param user       the authenticated user
+     * @param productRef the RTDB reference of the product node to assign an ID to
+     */
     private void ensureProductId(@NonNull FirebaseUser user, @NonNull DatabaseReference productRef) {
         // If productID already exists, do nothing.
         productRef.child("productID").addListenerForSingleValueEvent(new ValueEventListener() {
@@ -305,6 +422,12 @@ public class RtdbRepository {
         });
     }
 
+    /**
+     * Attempts to parse the given string as a {@code Long} product ID.
+     *
+     * @param raw the raw product ID string (may be {@code null} or blank)
+     * @return the parsed {@code Long} value, or {@code null} if unparseable
+     */
     private static Long tryParseProductId(@Nullable String raw) {
         if (raw == null) return null;
         String s = raw.trim();
@@ -490,6 +613,14 @@ public class RtdbRepository {
      * Adds (or increments) the item into /shopping/<uid>/<category>/<itemKey>.
      * bought is set to the provided value.
      */
+    /**
+     * Writes or updates a shopping list item under
+     * {@code /ShoppingListItems/<uid_itemKey>}. The {@code requiredAmount} field
+     * is incremented atomically via a Firebase Transaction.
+     *
+     * @param user the authenticated user
+     * @param item the item to upsert
+     */
     public void upsertShoppingItem(@NonNull FirebaseUser user, @NonNull ShoppingItem item) {
         DatabaseReference itemRef = shoppingItemRef(user, item);
         String itemKey = item.key == null ? RtdbKeyUtil.safeKey(item.name) : item.key;
@@ -522,6 +653,13 @@ public class RtdbRepository {
         });
     }
 
+    /**
+     * Updates the {@code bought} flag of the given shopping list item in RTDB.
+     *
+     * @param user  the authenticated user
+     * @param item  the item to update
+     * @param bought {@code true} to mark as bought, {@code false} to unmark
+     */
     public void setShoppingItemBought(
             @NonNull FirebaseUser user,
             @NonNull ShoppingItem item,
@@ -535,6 +673,14 @@ public class RtdbRepository {
         itemRef.updateChildren(updates);
     }
 
+    /**
+     * Sets the {@code requiredAmount} of the given shopping list item. If
+     * {@code newAmount ≤ 0} the item node is removed entirely.
+     *
+     * @param user      the authenticated user
+     * @param item      the item to update
+     * @param newAmount the desired quantity; ≤ 0 removes the item
+     */
     public void updateShoppingItemAmount(
             @NonNull FirebaseUser user,
             @NonNull ShoppingItem item,
@@ -553,10 +699,24 @@ public class RtdbRepository {
         itemRef.updateChildren(updates);
     }
 
+    /**
+     * Permanently removes the shopping list item node from RTDB.
+     *
+     * @param user the authenticated user
+     * @param item the item to delete
+     */
     public void deleteShoppingItem(@NonNull FirebaseUser user, @NonNull ShoppingItem item) {
         shoppingItemRef(user, item).removeValue();
     }
 
+    /**
+     * Updates the {@code isRecurring} flag of the given shopping list item,
+     * which controls whether the item is preserved after being marked as bought.
+     *
+     * @param user  the authenticated user
+     * @param item  the item to update
+     * @param saved {@code true} to mark as a recurring item, {@code false} otherwise
+     */
     public void setShoppingItemSaved(
             @NonNull FirebaseUser user,
             @NonNull ShoppingItem item,
@@ -570,6 +730,13 @@ public class RtdbRepository {
         itemRef.updateChildren(updates);
     }
 
+    /**
+     * Removes every item from the user's shopping list that has been marked as
+     * bought, regardless of its recurring flag. This is the "Clear all bought"
+     * action.
+     *
+     * @param user the authenticated user
+     */
     public void clearAllBoughtShoppingItems(@NonNull FirebaseUser user) {
         Query q = root.child("ShoppingListItems")
                 .orderByChild("userID")
@@ -590,6 +757,13 @@ public class RtdbRepository {
         });
     }
 
+    /**
+     * Removes only non-recurring shopping items that have been bought.
+     * Items with {@code isRecurring = true} are preserved so they re-appear
+     * on the next shopping session. Called from {@link com.example.myfridge.fragments.ShoppingFragment#onPause}.
+     *
+     * @param user the authenticated user
+     */
     public void clearBoughtUnsavedShoppingItems(@NonNull FirebaseUser user) {
         Query q = root.child("ShoppingListItems")
                 .orderByChild("userID")
@@ -616,6 +790,14 @@ public class RtdbRepository {
         });
     }
 
+    /**
+     * Writes or updates the given item in the user's recurring-defaults list at
+     * {@code /shoppingDefaults/<uid>/<itemKey>}. Recurring defaults are offered
+     * in the "Pick default items" dialog.
+     *
+     * @param user the authenticated user
+     * @param item the item to persist as a recurring default
+     */
     public void upsertRecurringDefault(@NonNull FirebaseUser user, @NonNull ShoppingItem item) {
         String itemKey = item.key == null ? RtdbKeyUtil.safeKey(item.name) : item.key;
         DatabaseReference defaultRef = root.child("shoppingDefaults")
@@ -632,6 +814,12 @@ public class RtdbRepository {
         defaultRef.updateChildren(updates);
     }
 
+    /**
+     * Removes the item from the user's recurring-defaults list in RTDB.
+     *
+     * @param user the authenticated user
+     * @param item the item whose default entry should be removed
+     */
     public void deleteRecurringDefault(@NonNull FirebaseUser user, @NonNull ShoppingItem item) {
         String itemKey = item.key == null ? RtdbKeyUtil.safeKey(item.name) : item.key;
         root.child("shoppingDefaults")
@@ -672,6 +860,14 @@ public class RtdbRepository {
                 });
     }
 
+    /**
+     * Builds the database reference for the given shopping item under
+     * {@code /ShoppingListItems/<uid_itemKey>}.
+     *
+     * @param user the authenticated user
+     * @param item the shopping item whose reference to build
+     * @return the database reference for the shopping item node
+     */
     private DatabaseReference shoppingItemRef(@NonNull FirebaseUser user, @NonNull ShoppingItem item) {
         String itemKey = item.key == null ? RtdbKeyUtil.safeKey(item.name) : item.key;
         String storageKey = user.getUid() + "_" + itemKey;
@@ -679,6 +875,14 @@ public class RtdbRepository {
                 .child(storageKey);
     }
 
+    /**
+     * Parses a {@code "yyyy-MM-dd"} expiration-bucket key back to a Unix
+     * timestamp in milliseconds. Returns {@code 0} for {@code null}, blank,
+     * {@code "unknown"}, or unparseable strings.
+     *
+     * @param expirationKey the RTDB expiration-bucket key; may be {@code null}
+     * @return the timestamp in milliseconds, or {@code 0} if unknown/unparseable
+     */
     private static long parseExpirationKeyToMs(@Nullable String expirationKey) {
         if (expirationKey == null || expirationKey.trim().isEmpty() || "unknown".equalsIgnoreCase(expirationKey)) {
             return 0L;

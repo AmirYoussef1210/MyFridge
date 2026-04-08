@@ -12,6 +12,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
+import android.widget.ProgressBar;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Spinner;
@@ -54,6 +55,7 @@ public class StorageFragment extends Fragment {
     private RtdbRepository rtdb;
     private ProductAdapter adapter;
     private TextView txtCount;
+    private ProgressBar progressLoading;
     private TextInputEditText etSearch;
     private CheckBox cbAboutToExpire;
     private Spinner spCategory;
@@ -73,6 +75,7 @@ public class StorageFragment extends Fragment {
         rtdb = new RtdbRepository();
         adapter = new ProductAdapter();
         txtCount = root.findViewById(R.id.txt_storage_count);
+        progressLoading = root.findViewById(R.id.progress_loading);
         etSearch = root.findViewById(R.id.et_storage_search);
         cbAboutToExpire = root.findViewById(R.id.cb_about_to_expire);
         spCategory = root.findViewById(R.id.sp_category);
@@ -132,10 +135,12 @@ public class StorageFragment extends Fragment {
             applyAllFilters();
             return;
         }
+        progressLoading.setVisibility(View.VISIBLE);
         rtdb.fetchAllInventory(user, new RtdbRepository.ProductsCallback() {
             @Override public void onSuccess(List<Product> products) {
                 if (!isAdded()) return;
                 requireActivity().runOnUiThread(() -> {
+                    progressLoading.setVisibility(View.GONE);
                     allProducts.clear();
                     allProducts.addAll(products);
                     setupCategorySpinner();
@@ -150,7 +155,12 @@ public class StorageFragment extends Fragment {
             }
             @Override public void onFailure(com.google.firebase.database.DatabaseError error) {
                 if (!isAdded()) return;
-                requireActivity().runOnUiThread(() -> { allProducts.clear(); setupCategorySpinner(); applyAllFilters(); });
+                requireActivity().runOnUiThread(() -> {
+                    progressLoading.setVisibility(View.GONE);
+                    allProducts.clear();
+                    setupCategorySpinner();
+                    applyAllFilters();
+                });
             }
         });
     }

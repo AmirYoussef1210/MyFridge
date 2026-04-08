@@ -15,26 +15,71 @@ import com.example.myfridge.R;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * {@link RecyclerView.Adapter} that displays a list of {@link ShoppingItem}
+ * rows using {@code R.layout.item_shopping_item}.
+ * <p>
+ * Supports:
+ * <ul>
+ *   <li>Toggling the "bought" checkbox and propagating the change via
+ *       {@link OnShoppingItemChangeListener#onBoughtChanged}</li>
+ *   <li>Row-tap callbacks via {@link OnShoppingItemChangeListener#onItemClicked}</li>
+ *   <li>Utility methods: {@link #getByKey}, {@link #hasBoughtItems},
+ *       {@link #removeBoughtItems}</li>
+ * </ul>
+ * </p>
+ */
 public class ShoppingAdapter extends RecyclerView.Adapter<ShoppingAdapter.VH> {
 
+    /**
+     * Callback interface for shopping list item interactions.
+     */
     public interface OnShoppingItemChangeListener {
+        /**
+         * Called when the "bought" checkbox state changes.
+         *
+         * @param item   the shopping item that was toggled
+         * @param bought the new checked state
+         */
         void onBoughtChanged(@NonNull ShoppingItem item, boolean bought);
+
+        /**
+         * Called when the user taps anywhere on the item row.
+         *
+         * @param item the tapped shopping item
+         */
         void onItemClicked(@NonNull ShoppingItem item);
     }
 
     private final List<ShoppingItem> items = new ArrayList<>();
     private OnShoppingItemChangeListener boughtListener;
 
+    /**
+     * Sets the listener to receive bought-toggle and row-tap callbacks.
+     *
+     * @param listener the listener; may be {@code null} to clear
+     */
     public void setOnShoppingItemChangeListener(OnShoppingItemChangeListener listener) {
         this.boughtListener = listener;
     }
 
+    /**
+     * Replaces the adapter's data set and triggers {@link #notifyDataSetChanged}.
+     *
+     * @param newItems the new list; {@code null} is treated as empty
+     */
     public void submit(List<ShoppingItem> newItems) {
         items.clear();
         if (newItems != null) items.addAll(newItems);
         notifyDataSetChanged();
     }
 
+    /**
+     * Finds the item with the given key in the current data set.
+     *
+     * @param key the item key to search for
+     * @return the matching {@link ShoppingItem} or {@code null} if not found
+     */
     @Nullable
     public ShoppingItem getByKey(String key) {
         for (ShoppingItem item : items) {
@@ -43,6 +88,12 @@ public class ShoppingAdapter extends RecyclerView.Adapter<ShoppingAdapter.VH> {
         return null;
     }
 
+    /**
+     * Returns {@code true} if at least one item in the current list has been
+     * marked as bought.
+     *
+     * @return {@code true} if there are any bought items
+     */
     public boolean hasBoughtItems() {
         for (ShoppingItem item : items) {
             if (item.bought) return true;
@@ -50,6 +101,12 @@ public class ShoppingAdapter extends RecyclerView.Adapter<ShoppingAdapter.VH> {
         return false;
     }
 
+    /**
+     * Removes all items whose {@link ShoppingItem#bought} flag is {@code true}
+     * from the adapter's local list and triggers {@link #notifyDataSetChanged}.
+     * Does <em>not</em> delete the items from RTDB — the caller is responsible
+     * for that.
+     */
     public void removeBoughtItems() {
         items.removeIf(item -> item.bought);
         notifyDataSetChanged();
@@ -92,6 +149,10 @@ public class ShoppingAdapter extends RecyclerView.Adapter<ShoppingAdapter.VH> {
         return items.size();
     }
 
+    /**
+     * ViewHolder that caches references to the views in
+     * {@code R.layout.item_shopping_item}.
+     */
     static class VH extends RecyclerView.ViewHolder {
         final CheckBox cbBought;
         final TextView txtName;

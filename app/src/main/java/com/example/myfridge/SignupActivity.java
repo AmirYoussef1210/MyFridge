@@ -27,6 +27,18 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserProfileChangeRequest;
 import com.google.firebase.database.FirebaseDatabase;
 
+/**
+ * Account-creation screen.
+ * <p>
+ * Collects a full name, email address and password, creates a new Firebase
+ * Authentication account, sets the display name on the Auth profile, and
+ * writes the name to RTDB under {@code /users/<uid>/name}. After a successful
+ * registration the user is forwarded to {@link OnboardingActivity}.
+ * </p>
+ * <p>
+ * A {@link NetworkChangeReceiver} is registered while the activity is visible.
+ * </p>
+ */
 public class SignupActivity extends AppCompatActivity {
 
     private EditText etFullName, etEmail, etPassword;
@@ -35,6 +47,7 @@ public class SignupActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private NetworkChangeReceiver networkReceiver;
 
+    /** Registers the network-change receiver while the activity is in the foreground. */
     @Override
     protected void onResume() {
         super.onResume();
@@ -42,6 +55,7 @@ public class SignupActivity extends AppCompatActivity {
         registerReceiver(networkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
     }
 
+    /** Unregisters the network-change receiver when the activity leaves the foreground. */
     @Override
     protected void onPause() {
         super.onPause();
@@ -51,6 +65,12 @@ public class SignupActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Inflates the signup layout and wires the sign-up button and the
+     * "already have an account" link.
+     *
+     * @param savedInstanceState previously saved instance state (may be {@code null})
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -80,6 +100,13 @@ public class SignupActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Validates the input fields (name, email, password length ≥ 6) and calls
+     * {@link FirebaseAuth#createUserWithEmailAndPassword}. On success, sets the
+     * display name via {@link com.google.firebase.auth.UserProfileChangeRequest},
+     * writes the name to RTDB, ensures a user profile node exists, and starts
+     * {@link OnboardingActivity}.
+     */
     private void signup() {
         String fullName = etFullName.getText().toString().trim();
         String email = etEmail.getText().toString().trim();
@@ -136,6 +163,12 @@ public class SignupActivity extends AppCompatActivity {
                 });
     }
 
+    /**
+     * Maps Firebase registration exceptions to user-friendly messages displayed
+     * in {@code tvMessage}.
+     *
+     * @param exp exception thrown by the failed registration task; may be {@code null}
+     */
     private void handleError(Exception exp) {
         String message;
         if (exp instanceof FirebaseAuthWeakPasswordException) {

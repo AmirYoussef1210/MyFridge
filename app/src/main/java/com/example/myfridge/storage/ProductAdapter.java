@@ -17,18 +17,47 @@ import java.util.Date;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * {@link RecyclerView.Adapter} that displays a list of {@link Product} items in
+ * {@code R.layout.item_storage_product} rows.
+ * <p>
+ * Call {@link #submit(List)} to replace the current data set. Attach a click
+ * listener via {@link #setOnProductClickListener} to receive callbacks when the
+ * user taps a row (used to show the product options dialog).
+ * </p>
+ */
 public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.VH> {
     private final List<Product> items = new ArrayList<>();
+
+    /**
+     * Callback interface for row tap events.
+     */
     public interface OnProductClickListener {
+        /**
+         * Called when the user taps a product row.
+         *
+         * @param product the tapped product
+         */
         void onClick(@NonNull Product product);
     }
 
     private OnProductClickListener clickListener;
 
+    /**
+     * Sets the listener to be notified when a product row is tapped.
+     *
+     * @param listener the click listener; may be {@code null} to clear
+     */
     public void setOnProductClickListener(OnProductClickListener listener) {
         this.clickListener = listener;
     }
 
+    /**
+     * Replaces the adapter's data set with {@code products} and triggers a full
+     * {@link #notifyDataSetChanged()} rebind.
+     *
+     * @param products the new list of products; {@code null} is treated as empty
+     */
     public void submit(List<Product> products) {
         items.clear();
         if (products != null) {
@@ -69,6 +98,14 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.VH> {
         });
     }
 
+    /**
+     * Builds the "Added: … • Expires: …" string shown in the product row.
+     * Falls back to the raw shelf-life string, then to "Unknown", when an
+     * exact expiry timestamp is unavailable.
+     *
+     * @param p the product to build the label for
+     * @return formatted date string
+     */
     private String buildDatesText(Product p) {
         String added = formatDate(p.createdAtMs);
         String expires;
@@ -82,6 +119,12 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.VH> {
         return "Added: " + added + " • Expires: " + expires;
     }
 
+    /**
+     * Formats a Unix timestamp in milliseconds to a {@code "yyyy-MM-dd"} string.
+     *
+     * @param ms the timestamp to format; {@code ≤ 0} returns {@code "Unknown"}
+     * @return formatted date string or {@code "Unknown"}
+     */
     private String formatDate(long ms) {
         if (ms <= 0L) return "Unknown";
         return DateFormat.format("yyyy-MM-dd", new Date(ms)).toString();
@@ -92,6 +135,10 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.VH> {
         return items.size();
     }
 
+    /**
+     * ViewHolder that caches references to the views in
+     * {@code R.layout.item_storage_product}.
+     */
     static class VH extends RecyclerView.ViewHolder {
         final ImageView image;
         final TextView name;

@@ -44,6 +44,22 @@ import androidx.core.content.FileProvider;
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * Activity for adding a new product to the fridge inventory.
+ * <p>
+ * Supports two input modes:
+ * <ul>
+ *   <li><b>Camera / gallery</b> — the user takes or picks a photo, which is
+ *       sent to the Gemini AI model for identification. The model returns a JSON
+ *       object with product name, shelf life, unit and category.</li>
+ *   <li><b>Manual entry</b> — the user types a product name; the Gemini model
+ *       looks it up and returns the same JSON schema.</li>
+ * </ul>
+ * In both cases a confirmation dialog lets the user review and edit the
+ * AI-suggested details before the product JSON is returned to the calling
+ * activity via {@link android.app.Activity#setResult}.
+ * </p>
+ */
 public class addToStorage extends AppCompatActivity {
     ImageView iV;
     Bitmap imageBitmap;
@@ -69,6 +85,11 @@ public class addToStorage extends AppCompatActivity {
         findViewById(R.id.btn_add_manually).setOnClickListener(v -> addManually());
     }
 
+    /**
+     * Shows an {@link android.app.AlertDialog} with a text input asking for the
+     * product name, then delegates to {@link #lookupProductWithAI} when the user
+     * confirms.
+     */
     private void addManually() {
         EditText input = new EditText(this);
         input.setHint("e.g. Milk, Chicken breast, Yogurt");
@@ -89,6 +110,14 @@ public class addToStorage extends AppCompatActivity {
                 .show();
     }
 
+    /**
+     * Sends a text-only prompt to the Gemini model asking whether the given
+     * product name is a refrigerator food item, and retrieves shelf-life,
+     * unit and category information. On success calls
+     * {@link #showManualConfirmDialog} so the user can review the result.
+     *
+     * @param productName the product name typed by the user
+     */
     private void lookupProductWithAI(String productName) {
         ProgressDialog pD = new ProgressDialog(this);
         pD.setTitle("Looking up product");
@@ -161,6 +190,18 @@ public class addToStorage extends AppCompatActivity {
         });
     }
 
+    /**
+     * Builds and shows a scrollable dialog pre-filled with the AI-suggested
+     * product details. The user can edit any field, tap a date to override the
+     * expiry date via a {@link android.app.DatePickerDialog}, then confirm to
+     * return the product JSON to the calling activity.
+     *
+     * @param name        AI-suggested product name
+     * @param unit        measurement unit (e.g. {@code "kg"}, {@code "ml"}, {@code "piece"})
+     * @param category    product category (e.g. {@code "dairy"})
+     * @param shelfLife   raw shelf-life string (e.g. {@code "7 days"}) used as a fallback label
+     * @param expiresAtMs expiry timestamp in milliseconds since epoch; {@code 0} if unknown
+     */
     private void showManualConfirmDialog(String name, String unit, String category, String shelfLife, long expiresAtMs) {
         int dp16 = (int) (16 * getResources().getDisplayMetrics().density);
         int dp4  = (int) (4  * getResources().getDisplayMetrics().density);
@@ -239,6 +280,14 @@ public class addToStorage extends AppCompatActivity {
                 .show();
     }
 
+    /**
+     * Strips a Markdown code-fence wrapper (e.g. {@code ```json ... ```}) from
+     * the model's raw output so the remainder can be parsed as plain JSON.
+     *
+     * @param raw the raw string returned by Gemini; may be {@code null}
+     * @return the trimmed content between the fences, or an empty string if
+     *         {@code raw} is {@code null}
+     */
     private static String stripMarkdown(String raw) {
         if (raw == null) return "";
         String s = raw.trim();
@@ -250,6 +299,13 @@ public class addToStorage extends AppCompatActivity {
         return s.trim();
     }
 
+    /**
+     * Creates a small grey label {@link android.widget.TextView} suitable for
+     * use as a field heading inside the confirm dialog layout.
+     *
+     * @param text the label text to display
+     * @return a styled {@link android.widget.TextView}
+     */
     private TextView fieldLabel(String text) {
         TextView tv = new TextView(this);
         tv.setText(text);
@@ -260,6 +316,13 @@ public class addToStorage extends AppCompatActivity {
         return tv;
     }
 
+    /**
+     * Launches a chooser that lets the user either take a new photo with the
+     * camera or pick an existing image from the gallery. The selected image is
+     * processed in {@link #onActivityResult}.
+     *
+     * @param view the view that triggered this call (camera button in the layout)
+     */
     public void enterPhoto(View view) {
         String filename = "tempfile";
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
@@ -326,6 +389,12 @@ public class addToStorage extends AppCompatActivity {
         }
     }
 
+    /**
+     * Displays a simple error {@link android.app.AlertDialog} with an OK button.
+     *
+     * @param title   dialog title
+     * @param message the error message body
+     */
     private void showError(String title, String message) {
         new AlertDialog.Builder(this)
                 .setTitle(title)

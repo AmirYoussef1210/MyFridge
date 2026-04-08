@@ -7,6 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -35,6 +36,7 @@ public class ShoppingFragment extends Fragment {
     private RtdbRepository rtdb;
     private ShoppingAdapter adapter;
     private TextView tvEmpty;
+    private ProgressBar progressLoading;
     private EditText etName;
     private EditText etHowMany;
     private androidx.appcompat.widget.AppCompatCheckBox cbKeepWhenBought;
@@ -62,6 +64,7 @@ public class ShoppingFragment extends Fragment {
         rtdb = new RtdbRepository();
         adapter = new ShoppingAdapter();
         tvEmpty = root.findViewById(R.id.tv_shopping_empty);
+        progressLoading = root.findViewById(R.id.progress_loading);
         etName = root.findViewById(R.id.et_shopping_name);
         etHowMany = root.findViewById(R.id.et_shopping_how_many);
         cbKeepWhenBought = root.findViewById(R.id.cb_keep_when_bought);
@@ -100,10 +103,12 @@ public class ShoppingFragment extends Fragment {
             if (isAdded()) Toast.makeText(requireContext(), "Please log in again.", Toast.LENGTH_SHORT).show();
             return;
         }
+        progressLoading.setVisibility(View.VISIBLE);
         rtdb.fetchShoppingList(user, new RtdbRepository.ShoppingItemsCallback() {
             @Override public void onSuccess(List<ShoppingItem> items) {
                 if (!isAdded()) return;
                 requireActivity().runOnUiThread(() -> {
+                    progressLoading.setVisibility(View.GONE);
                     adapter.submit(items);
                     boolean empty = items == null || items.isEmpty();
                     tvEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
@@ -113,7 +118,11 @@ public class ShoppingFragment extends Fragment {
                 });
             }
             @Override public void onFailure(com.google.firebase.database.DatabaseError error) {
-                if (isAdded()) requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Failed to load shopping list.", Toast.LENGTH_SHORT).show());
+                if (!isAdded()) return;
+                requireActivity().runOnUiThread(() -> {
+                    progressLoading.setVisibility(View.GONE);
+                    Toast.makeText(requireContext(), "Failed to load shopping list.", Toast.LENGTH_SHORT).show();
+                });
             }
         });
     }
