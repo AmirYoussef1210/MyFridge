@@ -5,7 +5,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
+import android.provider.Settings;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -20,6 +22,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
@@ -130,7 +133,44 @@ public class SettingsFragment extends Fragment {
     private void requestPostNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT < 33) return;
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return;
-        ActivityCompat.requestPermissions(requireActivity(), new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_POST_NOTIFICATIONS);
+        if (ActivityCompat.shouldShowRequestPermissionRationale(requireActivity(), Manifest.permission.POST_NOTIFICATIONS)) {
+            // User denied once before — explain why, then re-request
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Notifications needed")
+                    .setMessage("Allow notifications so you get alerts before your food expires.")
+                    .setPositiveButton("Allow", (d, w) -> ActivityCompat.requestPermissions(
+                            requireActivity(), new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_POST_NOTIFICATIONS))
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        } else {
+            // First-time request (system will show the dialog)
+            ActivityCompat.requestPermissions(requireActivity(), new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_POST_NOTIFICATIONS);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQ_POST_NOTIFICATIONS) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Granted — scheduler was already set up in saveSettings()
+            } else if (ActivityCompat.shouldShowRequestPermissionRationale(requireActivity(), Manifest.permission.POST_NOTIFICATIONS)) {
+                // Denied but "Don't ask again" was NOT checked — single toast
+                Toast.makeText(requireContext(), "Notifications permission denied. You won't receive expiry alerts.", Toast.LENGTH_SHORT).show();
+            } else {
+                // "Don't ask again" — direct to Settings
+                new AlertDialog.Builder(requireContext())
+                        .setTitle("Notifications permission required")
+                        .setMessage("Notification permission was permanently denied. Please enable it in Settings to receive expiry alerts.")
+                        .setPositiveButton("Open Settings", (d, w) -> {
+                            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                            intent.setData(Uri.fromParts("package", requireContext().getPackageName(), null));
+                            startActivity(intent);
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show();
+            }
+        }
     }
 
     private void logout() {

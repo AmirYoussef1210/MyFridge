@@ -5,6 +5,7 @@ import android.app.DatePickerDialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.provider.Settings;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -324,6 +325,22 @@ public class addToStorage extends AppCompatActivity {
      * @param view the view that triggered this call (camera button in the layout)
      */
     public void enterPhoto(View view) {
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.CAMERA)) {
+                // User denied once before — show rationale then re-request
+                new AlertDialog.Builder(this)
+                        .setTitle("Camera permission needed")
+                        .setMessage("Camera access is required to take a photo of your product.")
+                        .setPositiveButton("Allow", (d, w) -> ActivityCompat.requestPermissions(
+                                this, new String[]{android.Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION))
+                        .setNegativeButton("Cancel", null)
+                        .show();
+            } else {
+                // First-time request (system will show the dialog)
+                ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
+            }
+            return;
+        }
         String filename = "tempfile";
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         Uri imageUri;
@@ -365,9 +382,6 @@ public class addToStorage extends AppCompatActivity {
         super.onResume();
         networkReceiver = new NetworkChangeReceiver(this);
         registerReceiver(networkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
-        }
     }
 
     @Override
@@ -383,8 +397,25 @@ public class addToStorage extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_CAMERA_PERMISSION) {
-            if (!(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                Toast.makeText(this, "Camera permission denied", Toast.LENGTH_SHORT).show();
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission just granted — proceed straight to the camera/gallery chooser
+                enterPhoto(null);
+            } else if (ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.CAMERA)) {
+                // Denied but "Don't ask again" was NOT checked — a single toast is enough
+                Toast.makeText(this, "Camera permission is needed to take photos.", Toast.LENGTH_SHORT).show();
+            } else {
+                // "Don't ask again" was checked — requestPermissions would silently do nothing,
+                // so direct the user to Settings instead of spamming permission dialogs/toasts
+                new AlertDialog.Builder(this)
+                        .setTitle("Camera permission required")
+                        .setMessage("Camera permission was permanently denied. Please enable it in Settings to take photos.")
+                        .setPositiveButton("Open Settings", (d, w) -> {
+                            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                            intent.setData(Uri.fromParts("package", getPackageName(), null));
+                            startActivity(intent);
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show();
             }
         }
     }

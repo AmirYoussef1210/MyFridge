@@ -6,9 +6,11 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
+import android.net.Uri;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.widget.Button;
 import android.widget.EditText;
@@ -19,6 +21,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -207,7 +210,9 @@ public class SettingsActivity extends AppCompatActivity {
 
     /**
      * On Android 13+ (API 33), requests the {@code POST_NOTIFICATIONS} runtime
-     * permission if it has not already been granted. No-op on earlier API levels.
+     * permission if it has not already been granted. Shows a rationale dialog first
+     * if the user has previously denied, or directs to Settings if permanently denied.
+     * No-op on earlier API levels.
      */
     private void requestPostNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT < 33) return;
@@ -215,19 +220,46 @@ public class SettingsActivity extends AppCompatActivity {
                 == PackageManager.PERMISSION_GRANTED) {
             return;
         }
-        ActivityCompat.requestPermissions(
-                this,
-                new String[]{Manifest.permission.POST_NOTIFICATIONS},
-                REQ_POST_NOTIFICATIONS
-        );
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.POST_NOTIFICATIONS)) {
+            // User denied once before — explain why, then re-request
+            new AlertDialog.Builder(this)
+                    .setTitle("Notifications needed")
+                    .setMessage("Allow notifications so you get alerts before your food expires.")
+                    .setPositiveButton("Allow", (d, w) -> ActivityCompat.requestPermissions(
+                            this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_POST_NOTIFICATIONS))
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        } else {
+            // First-time request (system will show the dialog)
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    REQ_POST_NOTIFICATIONS
+            );
+        }
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQ_POST_NOTIFICATIONS) {
-            if (grantResults.length == 0 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Enable notifications in system settings to get expiry alerts.", Toast.LENGTH_LONG).show();
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Granted — nothing extra to do, scheduler was already set up in saveSettings()
+            } else if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.POST_NOTIFICATIONS)) {
+                // Denied but "Don't ask again" was NOT checked — single toast
+                Toast.makeText(this, "Notifications permission denied. You won't receive expiry alerts.", Toast.LENGTH_SHORT).show();
+            } else {
+                // "Don't ask again" — direct to Settings
+                new AlertDialog.Builder(this)
+                        .setTitle("Notifications permission required")
+                        .setMessage("Notification permission was permanently denied. Please enable it in Settings to receive expiry alerts.")
+                        .setPositiveButton("Open Settings", (d, w) -> {
+                            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                            intent.setData(Uri.fromParts("package", getPackageName(), null));
+                            startActivity(intent);
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show();
             }
         }
     }

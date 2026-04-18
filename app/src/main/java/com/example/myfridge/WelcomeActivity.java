@@ -2,9 +2,11 @@ package com.example.myfridge;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.widget.ImageView;
 
@@ -33,6 +35,24 @@ import com.google.firebase.database.ValueEventListener;
  * </p>
  */
 public class WelcomeActivity extends AppCompatActivity {
+
+    private NetworkChangeReceiver networkReceiver;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        networkReceiver = new NetworkChangeReceiver(this);
+        registerReceiver(networkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (networkReceiver != null) {
+            unregisterReceiver(networkReceiver);
+            networkReceiver = null;
+        }
+    }
 
     /**
      * Initialises the activity, checks the auto-login preference and either
