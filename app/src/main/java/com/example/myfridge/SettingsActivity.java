@@ -2,6 +2,7 @@ package com.example.myfridge;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -12,6 +13,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.text.TextUtils;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioButton;
@@ -32,6 +34,8 @@ import com.example.myfridge.rtdb.RtdbRepository;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.HashMap;
@@ -98,13 +102,28 @@ public class SettingsActivity extends AppCompatActivity {
         loadFromRtdb();
 
         Button btnSave = findViewById(R.id.btn_save_settings);
-        btnSave.setOnClickListener(v -> saveSettings());
+        btnSave.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                saveSettings();
+            }
+        });
 
         Button btnAbout = findViewById(R.id.btn_about);
-        btnAbout.setOnClickListener(v -> startActivity(new Intent(this, AboutActivity.class)));
+        btnAbout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(SettingsActivity.this, AboutActivity.class));
+            }
+        });
 
         Button btnLogout = findViewById(R.id.btn_logout);
-        btnLogout.setOnClickListener(v -> logout());
+        btnLogout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                logout();
+            }
+        });
     }
 
     /**
@@ -119,20 +138,28 @@ public class SettingsActivity extends AppCompatActivity {
         rtdb.fetchUserPreferences(user, new RtdbRepository.UserPrefsCallback() {
             @Override
             public void onSuccess(@NonNull String units, int daysBeforeExpireChoice) {
-                runOnUiThread(() -> {
-                    etDays.setText(String.valueOf(daysBeforeExpireChoice));
-                    String u = units == null ? "" : units.trim().toLowerCase();
-                    if ("imperial".equals(u)) {
-                        rbImperial.setChecked(true);
-                    } else {
-                        rbMetric.setChecked(true);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        etDays.setText(String.valueOf(daysBeforeExpireChoice));
+                        String u = units == null ? "" : units.trim().toLowerCase();
+                        if ("imperial".equals(u)) {
+                            rbImperial.setChecked(true);
+                        } else {
+                            rbMetric.setChecked(true);
+                        }
                     }
                 });
             }
 
             @Override
             public void onFailure(@NonNull com.google.firebase.database.DatabaseError error) {
-                runOnUiThread(() -> etDays.setText("2"));
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        etDays.setText("2");
+                    }
+                });
             }
         });
     }
@@ -190,21 +217,24 @@ public class SettingsActivity extends AppCompatActivity {
                 .child("users")
                 .child(user.getUid())
                 .updateChildren(updates)
-                .addOnCompleteListener(task -> {
-                    if (!task.isSuccessful()) {
-                        tvError.setText("Could not save. Check connection.");
-                        return;
-                    }
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        if (!task.isSuccessful()) {
+                            tvError.setText("Could not save. Check connection.");
+                            return;
+                        }
 
-                    boolean notifyOn = swExpiryNotifications.isChecked();
-                    ExpiryWorkScheduler.setExpiryNotificationsEnabled(SettingsActivity.this, notifyOn);
-                    if (notifyOn) {
-                        requestPostNotificationPermissionIfNeeded();
-                        ExpiryWorkScheduler.schedule(SettingsActivity.this);
-                        ExpiryWorkScheduler.runOnceSoon(SettingsActivity.this);
-                    }
+                        boolean notifyOn = swExpiryNotifications.isChecked();
+                        ExpiryWorkScheduler.setExpiryNotificationsEnabled(SettingsActivity.this, notifyOn);
+                        if (notifyOn) {
+                            requestPostNotificationPermissionIfNeeded();
+                            ExpiryWorkScheduler.schedule(SettingsActivity.this);
+                            ExpiryWorkScheduler.runOnceSoon(SettingsActivity.this);
+                        }
 
-                    Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(SettingsActivity.this, "Saved", Toast.LENGTH_SHORT).show();
+                    }
                 });
     }
 
@@ -225,8 +255,13 @@ public class SettingsActivity extends AppCompatActivity {
             new AlertDialog.Builder(this)
                     .setTitle("Notifications needed")
                     .setMessage("Allow notifications so you get alerts before your food expires.")
-                    .setPositiveButton("Allow", (d, w) -> ActivityCompat.requestPermissions(
-                            this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_POST_NOTIFICATIONS))
+                    .setPositiveButton("Allow", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface d, int w) {
+                            ActivityCompat.requestPermissions(
+                                    SettingsActivity.this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_POST_NOTIFICATIONS);
+                        }
+                    })
                     .setNegativeButton("Cancel", null)
                     .show();
         } else {
@@ -253,10 +288,13 @@ public class SettingsActivity extends AppCompatActivity {
                 new AlertDialog.Builder(this)
                         .setTitle("Notifications permission required")
                         .setMessage("Notification permission was permanently denied. Please enable it in Settings to receive expiry alerts.")
-                        .setPositiveButton("Open Settings", (d, w) -> {
-                            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                            intent.setData(Uri.fromParts("package", getPackageName(), null));
-                            startActivity(intent);
+                        .setPositiveButton("Open Settings", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface d, int w) {
+                                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                                intent.setData(Uri.fromParts("package", getPackageName(), null));
+                                startActivity(intent);
+                            }
                         })
                         .setNegativeButton("Cancel", null)
                         .show();

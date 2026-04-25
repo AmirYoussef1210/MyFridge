@@ -548,9 +548,12 @@ public class RtdbRepository {
                     updates.put(storageKey, itemMap);
                 }
 
-                listRef.updateChildren(updates, (error, ref) -> {
-                    if (error != null) callback.onFailure(error);
-                    else callback.onSuccess();
+                listRef.updateChildren(updates, new DatabaseReference.CompletionListener() {
+                    @Override
+                    public void onComplete(@Nullable DatabaseError error, @NonNull DatabaseReference ref) {
+                        if (error != null) callback.onFailure(error);
+                        else callback.onSuccess();
+                    }
                 });
             }
 

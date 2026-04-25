@@ -4,6 +4,7 @@ import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.ImageButton;
 import android.widget.PopupMenu;
 
@@ -43,17 +44,23 @@ public abstract class MasterActivity extends AppCompatActivity {
         setContentView(R.layout.activity_master);
 
         ImageButton menuButton = findViewById(R.id.master_menu_button);
-        menuButton.setOnClickListener(v -> {
-            PopupMenu popup = new PopupMenu(this, v);
-            popup.getMenuInflater().inflate(R.menu.menu_general, popup.getMenu());
-            popup.setOnMenuItemClickListener(item -> {
-                if (item.getItemId() == R.id.menu_settings) {
-                    onSettingsMenuSelected();
-                    return true;
-                }
-                return onMasterMenuItemSelected(item);
-            });
-            popup.show();
+        menuButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                PopupMenu popup = new PopupMenu(MasterActivity.this, v);
+                popup.getMenuInflater().inflate(R.menu.menu_general, popup.getMenu());
+                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem item) {
+                        if (item.getItemId() == R.id.menu_settings) {
+                            onSettingsMenuSelected();
+                            return true;
+                        }
+                        return onMasterMenuItemSelected(item);
+                    }
+                });
+                popup.show();
+            }
         });
 
         getLayoutInflater().inflate(getMasterContentLayoutId(), findViewById(R.id.master_content_host), true);

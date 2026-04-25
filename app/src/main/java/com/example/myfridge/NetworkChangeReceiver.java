@@ -2,6 +2,7 @@ package com.example.myfridge;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
+import android.content.DialogInterface;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
@@ -44,8 +45,12 @@ public class NetworkChangeReceiver extends BroadcastReceiver {
                     .setTitle("No Internet Connection")
                     .setMessage("MyFridge requires an internet connection. Please reconnect to continue.")
                     .setCancelable(false)
-                    .setPositiveButton("Wi-Fi Settings", (dialog, which) ->
-                            activity.startActivity(new Intent(android.provider.Settings.ACTION_WIFI_SETTINGS)))
+                    .setPositiveButton("Wi-Fi Settings", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            activity.startActivity(new Intent(android.provider.Settings.ACTION_WIFI_SETTINGS));
+                        }
+                    })
                     .create();
             networkDialog.show();
         }

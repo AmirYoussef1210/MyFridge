@@ -5,6 +5,7 @@ import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioButton;
@@ -16,6 +17,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.HashMap;
@@ -85,53 +88,61 @@ public class OnboardingActivity extends AppCompatActivity {
         Button btnSave = findViewById(R.id.btn_save_onboarding);
         TextView tvError = findViewById(R.id.tv_onboarding_error);
 
-        btnSave.setOnClickListener(v -> {
-            tvError.setText("");
+        btnSave.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                tvError.setText("");
 
-            int selectedId = rgUnits.getCheckedRadioButtonId();
-            String units = "";
-            if (selectedId != -1) {
-                RadioButton rb = findViewById(selectedId);
-                units = rb.getTag() == null ? "" : String.valueOf(rb.getTag());
-            }
-
-            String daysRaw = etDays.getText() == null ? "" : etDays.getText().toString().trim();
-            Integer days = null;
-            if (!TextUtils.isEmpty(daysRaw)) {
-                try {
-                    days = Integer.parseInt(daysRaw);
-                } catch (NumberFormatException ignored) {
+                int selectedId = rgUnits.getCheckedRadioButtonId();
+                String units = "";
+                if (selectedId != -1) {
+                    RadioButton rb = findViewById(selectedId);
+                    units = rb.getTag() == null ? "" : String.valueOf(rb.getTag());
                 }
-            }
 
-            if (units.isEmpty()) {
-                tvError.setText("Please choose units.");
-                return;
-            }
-            if (days == null || days < 1 || days > 30) {
-                tvError.setText("Days before expire must be between 1 and 30.");
-                return;
-            }
+                String daysRaw = etDays.getText() == null ? "" : etDays.getText().toString().trim();
+                Integer days = null;
+                if (!TextUtils.isEmpty(daysRaw)) {
+                    try {
+                        days = Integer.parseInt(daysRaw);
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
 
-            Map<String, Object> updates = new HashMap<>();
-            updates.put("units", units);
-            updates.put("daysBeforeExpireChoice", days);
+                if (units.isEmpty()) {
+                    tvError.setText("Please choose units.");
+                    return;
+                }
+                if (days == null || days < 1 || days > 30) {
+                    tvError.setText("Days before expire must be between 1 and 30.");
+                    return;
+                }
 
-            FirebaseDatabase.getInstance()
-                    .getReference()
-                    .child("users")
-                    .child(user.getUid())
-                    .updateChildren(updates)
-                    .addOnCompleteListener(t -> {
-                        if (t.isSuccessful()) {
-                            Intent i = new Intent(this, MainScreenActivity.class);
-                            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                            startActivity(i);
-                            finish();
-                        } else {
-                            tvError.setText("Failed saving settings. Try again.");
-                        }
-                    });
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("units", units);
+                updates.put("daysBeforeExpireChoice", days);
+
+                final Integer finalDays = days;
+                final String finalUnits = units;
+                FirebaseDatabase.getInstance()
+                        .getReference()
+                        .child("users")
+                        .child(user.getUid())
+                        .updateChildren(updates)
+                        .addOnCompleteListener(new OnCompleteListener<Void>() {
+                            @Override
+                            public void onComplete(Task<Void> t) {
+                                if (t.isSuccessful()) {
+                                    Intent i = new Intent(OnboardingActivity.this, MainScreenActivity.class);
+                                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                    startActivity(i);
+                                    finish();
+                                } else {
+                                    tvError.setText("Failed saving settings. Try again.");
+                                }
+                            }
+                        });
+            }
         });
     }
 }

@@ -45,8 +45,18 @@ public class HomeFragment extends Fragment {
         txtDairyItems = root.findViewById(R.id.txt_dairy_items);
         txtProduceItems = root.findViewById(R.id.txt_produce_items);
         progressLoading = root.findViewById(R.id.progress_loading);
-        root.findViewById(R.id.row_about_to_expire).setOnClickListener(v -> openInventory());
-        root.findViewById(R.id.row_shopping_cta).setOnClickListener(v -> openShopping());
+        root.findViewById(R.id.row_about_to_expire).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openInventory();
+            }
+        });
+        root.findViewById(R.id.row_shopping_cta).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openShopping();
+            }
+        });
         return root;
     }
 
@@ -117,46 +127,52 @@ public class HomeFragment extends Fragment {
         rtdb.fetchUserPreferences(user, new RtdbRepository.UserPrefsCallback() {
             @Override
             public void onSuccess(String units, int daysBeforeExpireChoice) {
-                long windowMs = (long) daysBeforeExpireChoice * 24L * 60L * 60L * 1000L;
+                long windowMs = (long) daysBeforeExpireChoice * 24L * 60L * 60L * 1000L; // L - long
                 rtdb.fetchAllInventory(user, new RtdbRepository.ProductsCallback() {
                     @Override
-                    public void onSuccess(List<Product> products) {
+                    public void onSuccess(List<Product> products) { // this is getting the info in the main screen from the inventory
                         if (!isAdded()) return;
-                        requireActivity().runOnUiThread(() -> {
-                            progressLoading.setVisibility(View.GONE);
-                            int totalAmount = 0;
-                            int aboutToExpireCount = 0;
-                            int dairyAmount = 0;
-                            int produceAmount = 0;
-                            long now = System.currentTimeMillis();
-                            for (Product p : products) {
-                                int amt = Math.max(0, p.amount);
-                                totalAmount += amt;
-                                if (p.expiresAtMs > 0L) {
-                                    long diff = p.expiresAtMs - now;
-                                    if (diff >= 0L && diff <= windowMs) aboutToExpireCount += amt;
+                        requireActivity().runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                progressLoading.setVisibility(View.GONE);
+                                int totalAmount = 0;
+                                int aboutToExpireCount = 0;
+                                int dairyAmount = 0;
+                                int produceAmount = 0;
+                                long now = System.currentTimeMillis();
+                                for (Product p : products) {
+                                    int amt = Math.max(0, p.amount);
+                                    totalAmount += amt;
+                                    if (p.expiresAtMs > 0L) {
+                                        long diff = p.expiresAtMs - now;
+                                        if (diff >= 0L && diff <= windowMs) aboutToExpireCount += amt;
+                                    }
+                                    String cat = p.category == null ? "" : p.category.trim().toLowerCase();
+                                    if (cat.equals("dairy")) dairyAmount += amt;
+                                    else if (cat.equals("produce") || cat.equals("vegetable") || cat.equals("vegetables")
+                                            || cat.equals("fruit") || cat.equals("fruits")) produceAmount += amt;
                                 }
-                                String cat = p.category == null ? "" : p.category.trim().toLowerCase();
-                                if (cat.equals("dairy")) dairyAmount += amt;
-                                else if (cat.equals("produce") || cat.equals("vegetable") || cat.equals("vegetables")
-                                        || cat.equals("fruit") || cat.equals("fruits")) produceAmount += amt;
+                                txtTotalProducts.setText(String.valueOf(totalAmount));
+                                txtAboutToExpire.setText("About to expire: " + aboutToExpireCount);
+                                txtDairyItems.setText(dairyAmount + " Items");
+                                txtProduceItems.setText(produceAmount + " Items");
                             }
-                            txtTotalProducts.setText(String.valueOf(totalAmount));
-                            txtAboutToExpire.setText("About to expire: " + aboutToExpireCount);
-                            txtDairyItems.setText(dairyAmount + " Items");
-                            txtProduceItems.setText(produceAmount + " Items");
                         });
                     }
 
                     @Override
-                    public void onFailure(DatabaseError error) {
+                    public void onFailure(DatabaseError error) { //if fails put all defaults 0
                         if (!isAdded()) return;
-                        requireActivity().runOnUiThread(() -> {
-                            progressLoading.setVisibility(View.GONE);
-                            txtTotalProducts.setText("0");
-                            txtAboutToExpire.setText("About to expire: 0");
-                            txtDairyItems.setText("0 Items");
-                            txtProduceItems.setText("0 Items");
+                        requireActivity().runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                progressLoading.setVisibility(View.GONE);
+                                txtTotalProducts.setText("0");
+                                txtAboutToExpire.setText("About to expire: 0");
+                                txtDairyItems.setText("0 Items");
+                                txtProduceItems.setText("0 Items");
+                            }
                         });
                     }
                 });
@@ -165,12 +181,15 @@ public class HomeFragment extends Fragment {
             @Override
             public void onFailure(DatabaseError error) {
                 if (!isAdded()) return;
-                requireActivity().runOnUiThread(() -> {
-                    progressLoading.setVisibility(View.GONE);
-                    txtTotalProducts.setText("0");
-                    txtAboutToExpire.setText("About to expire: 0");
-                    txtDairyItems.setText("0 Items");
-                    txtProduceItems.setText("0 Items");
+                requireActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        progressLoading.setVisibility(View.GONE);
+                        txtTotalProducts.setText("0");
+                        txtAboutToExpire.setText("About to expire: 0");
+                        txtDairyItems.setText("0 Items");
+                        txtProduceItems.setText("0 Items");
+                    }
                 });
             }
         });

@@ -4,6 +4,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -108,7 +109,12 @@ public class ShoppingAdapter extends RecyclerView.Adapter<ShoppingAdapter.VH> {
      * for that.
      */
     public void removeBoughtItems() {
-        items.removeIf(item -> item.bought);
+        items.removeIf(new java.util.function.Predicate<ShoppingItem>() {
+            @Override
+            public boolean test(ShoppingItem item) {
+                return item.bought;
+            }
+        });
         notifyDataSetChanged();
     }
 
@@ -130,16 +136,22 @@ public class ShoppingAdapter extends RecyclerView.Adapter<ShoppingAdapter.VH> {
         holder.txtMeta.setText((item.category == null ? "" : item.category) + " • " + "qty");
         holder.txtQty.setText(String.valueOf(item.howMany));
 
-        holder.cbBought.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            item.bought = isChecked;
-            if (boughtListener != null) {
-                boughtListener.onBoughtChanged(item, isChecked);
+        holder.cbBought.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                item.bought = isChecked;
+                if (boughtListener != null) {
+                    boughtListener.onBoughtChanged(item, isChecked);
+                }
             }
         });
 
-        holder.itemView.setOnClickListener(v -> {
-            if (boughtListener != null) {
-                boughtListener.onItemClicked(item);
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (boughtListener != null) {
+                    boughtListener.onItemClicked(item);
+                }
             }
         });
     }

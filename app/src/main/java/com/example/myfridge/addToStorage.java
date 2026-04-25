@@ -13,11 +13,13 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.content.DialogInterface;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.text.InputType;
 import android.util.Log;
 import android.view.View;
+import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -81,9 +83,19 @@ public class addToStorage extends AppCompatActivity {
         gM = GeminiManager.getInstance();
 
         Toolbar toolbar = findViewById(R.id.toolbar);
-        toolbar.setNavigationOnClickListener(v -> finish());
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
 
-        findViewById(R.id.btn_add_manually).setOnClickListener(v -> addManually());
+        findViewById(R.id.btn_add_manually).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                addManually();
+            }
+        });
     }
 
     /**
@@ -102,10 +114,13 @@ public class addToStorage extends AppCompatActivity {
                 .setTitle("Add item manually")
                 .setMessage("Enter the product name and AI will fill in the details.")
                 .setView(input)
-                .setPositiveButton("Look up", (dialog, which) -> {
-                    String name = input.getText() == null ? "" : input.getText().toString().trim();
-                    if (name.isEmpty()) { Toast.makeText(this, "Please enter a product name.", Toast.LENGTH_SHORT).show(); return; }
-                    lookupProductWithAI(name);
+                .setPositiveButton("Look up", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        String name = input.getText() == null ? "" : input.getText().toString().trim();
+                        if (name.isEmpty()) { Toast.makeText(addToStorage.this, "Please enter a product name.", Toast.LENGTH_SHORT).show(); return; }
+                        lookupProductWithAI(name);
+                    }
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
@@ -151,41 +166,47 @@ public class addToStorage extends AppCompatActivity {
         gM.sendTextPrompt(prompt, new GeminiCallBack() {
             @Override
             public void onSuccess(String result) {
-                runOnUiThread(() -> {
-                    pD.dismiss();
-                    try {
-                        org.json.JSONObject o = new org.json.JSONObject(stripMarkdown(result));
-                        boolean isFridgeItem = o.optBoolean("is_fridge_item", false);
-                        String reason = o.optString("reason", "").trim();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        pD.dismiss();
+                        try {
+                            org.json.JSONObject o = new org.json.JSONObject(stripMarkdown(result));
+                            boolean isFridgeItem = o.optBoolean("is_fridge_item", false);
+                            String reason = o.optString("reason", "").trim();
 
-                        if (!isFridgeItem) {
-                            showError("Not a fridge item",
-                                    "\"" + productName + "\" doesn't seem to belong in the fridge." +
-                                    (reason.isEmpty() ? "" : "\n\n" + reason));
-                            return;
+                            if (!isFridgeItem) {
+                                showError("Not a fridge item",
+                                        "\"" + productName + "\" doesn't seem to belong in the fridge." +
+                                        (reason.isEmpty() ? "" : "\n\n" + reason));
+                                return;
+                            }
+
+                            String name      = o.optString("product_name", productName).trim();
+                            String shelfLife = o.optString("shelf_life", "").trim();
+                            String unit      = o.optString("measurement_unit", "piece").trim();
+                            String category  = o.optString("category", "other").trim();
+
+                            long now = System.currentTimeMillis();
+                            long duration = ShelfLifeParser.parseToDurationMillis(shelfLife);
+                            long expiresAtMs = duration > 0 ? now + duration : 0L;
+
+                            showManualConfirmDialog(name, unit, category, shelfLife, expiresAtMs);
+                        } catch (Exception e) {
+                            showError("AI Response", result);
                         }
-
-                        String name      = o.optString("product_name", productName).trim();
-                        String shelfLife = o.optString("shelf_life", "").trim();
-                        String unit      = o.optString("measurement_unit", "piece").trim();
-                        String category  = o.optString("category", "other").trim();
-
-                        long now = System.currentTimeMillis();
-                        long duration = ShelfLifeParser.parseToDurationMillis(shelfLife);
-                        long expiresAtMs = duration > 0 ? now + duration : 0L;
-
-                        showManualConfirmDialog(name, unit, category, shelfLife, expiresAtMs);
-                    } catch (Exception e) {
-                        showError("AI Response", result);
                     }
                 });
             }
 
             @Override
             public void onFailure(Throwable error) {
-                runOnUiThread(() -> {
-                    pD.dismiss();
-                    showError("AI Error", "Something went wrong: " + error.getMessage());
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        pD.dismiss();
+                        showError("AI Error", "Something went wrong: " + error.getMessage());
+                    }
                 });
             }
         });
@@ -236,15 +257,21 @@ public class addToStorage extends AppCompatActivity {
         tvExpiry.setTextColor(Color.parseColor("#1565C0"));
         tvExpiry.setTextSize(16);
         tvExpiry.setText(expiresAtMs > 0 ? sdf.format(new Date(expiresAtMs)) : "Tap to set expiry date");
-        tvExpiry.setOnClickListener(v -> {
-            Calendar cal = Calendar.getInstance();
-            if (expiresHolder[0] > 0) cal.setTimeInMillis(expiresHolder[0]);
-            new DatePickerDialog(this, (picker, year, month, day) -> {
-                Calendar sel = Calendar.getInstance();
-                sel.set(year, month, day, 12, 0, 0);
-                expiresHolder[0] = sel.getTimeInMillis();
-                tvExpiry.setText(sdf.format(new Date(expiresHolder[0])));
-            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
+        tvExpiry.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Calendar cal = Calendar.getInstance();
+                if (expiresHolder[0] > 0) cal.setTimeInMillis(expiresHolder[0]);
+                new DatePickerDialog(addToStorage.this, new DatePickerDialog.OnDateSetListener() {
+                    @Override
+                    public void onDateSet(DatePicker picker, int year, int month, int day) {
+                        Calendar sel = Calendar.getInstance();
+                        sel.set(year, month, day, 12, 0, 0);
+                        expiresHolder[0] = sel.getTimeInMillis();
+                        tvExpiry.setText(sdf.format(new Date(expiresHolder[0])));
+                    }
+                }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
+            }
         });
         layout.addView(fieldLabel("Expiry date (tap to change)"));
         layout.addView(tvExpiry);
@@ -256,25 +283,28 @@ public class addToStorage extends AppCompatActivity {
                 .setTitle("Confirm item")
                 .setMessage("AI-suggested details — edit if needed before adding.")
                 .setView(scroll)
-                .setPositiveButton("Add to fridge", (dialog, which) -> {
-                    String finalName = etName.getText() == null ? "" : etName.getText().toString().trim();
-                    if (finalName.isEmpty()) { Toast.makeText(this, "Product name is required.", Toast.LENGTH_SHORT).show(); return; }
-                    try {
-                        org.json.JSONObject out = new org.json.JSONObject();
-                        out.put("name",         finalName);
-                        out.put("unit",         etUnit.getText() == null ? unit : etUnit.getText().toString().trim());
-                        out.put("category",     etCategory.getText() == null ? category : etCategory.getText().toString().trim());
-                        out.put("imageUri",     "");
-                        out.put("shelfLifeRaw", shelfLife);
-                        out.put("expiresAtMs",  expiresHolder[0]);
-                        out.put("addedAtMs",    System.currentTimeMillis());
+                .setPositiveButton("Add to fridge", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        String finalName = etName.getText() == null ? "" : etName.getText().toString().trim();
+                        if (finalName.isEmpty()) { Toast.makeText(addToStorage.this, "Product name is required.", Toast.LENGTH_SHORT).show(); return; }
+                        try {
+                            org.json.JSONObject out = new org.json.JSONObject();
+                            out.put("name",         finalName);
+                            out.put("unit",         etUnit.getText() == null ? unit : etUnit.getText().toString().trim());
+                            out.put("category",     etCategory.getText() == null ? category : etCategory.getText().toString().trim());
+                            out.put("imageUri",     "");
+                            out.put("shelfLifeRaw", shelfLife);
+                            out.put("expiresAtMs",  expiresHolder[0]);
+                            out.put("addedAtMs",    System.currentTimeMillis());
 
-                        Intent data = new Intent();
-                        data.putExtra(StorageActivity.EXTRA_PRODUCT_JSON, out.toString());
-                        setResult(Activity.RESULT_OK, data);
-                        finish();
-                    } catch (Exception e) {
-                        showError("Error", "Failed to save product.");
+                            Intent data = new Intent();
+                            data.putExtra(StorageActivity.EXTRA_PRODUCT_JSON, out.toString());
+                            setResult(Activity.RESULT_OK, data);
+                            finish();
+                        } catch (Exception e) {
+                            showError("Error", "Failed to save product.");
+                        }
                     }
                 })
                 .setNegativeButton("Cancel", null)
@@ -331,8 +361,13 @@ public class addToStorage extends AppCompatActivity {
                 new AlertDialog.Builder(this)
                         .setTitle("Camera permission needed")
                         .setMessage("Camera access is required to take a photo of your product.")
-                        .setPositiveButton("Allow", (d, w) -> ActivityCompat.requestPermissions(
-                                this, new String[]{android.Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION))
+                        .setPositiveButton("Allow", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface d, int w) {
+                                ActivityCompat.requestPermissions(
+                                        addToStorage.this, new String[]{android.Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
+                            }
+                        })
                         .setNegativeButton("Cancel", null)
                         .show();
             } else {
@@ -409,10 +444,13 @@ public class addToStorage extends AppCompatActivity {
                 new AlertDialog.Builder(this)
                         .setTitle("Camera permission required")
                         .setMessage("Camera permission was permanently denied. Please enable it in Settings to take photos.")
-                        .setPositiveButton("Open Settings", (d, w) -> {
-                            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                            intent.setData(Uri.fromParts("package", getPackageName(), null));
-                            startActivity(intent);
+                        .setPositiveButton("Open Settings", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface d, int w) {
+                                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                                intent.setData(Uri.fromParts("package", getPackageName(), null));
+                                startActivity(intent);
+                            }
                         })
                         .setNegativeButton("Cancel", null)
                         .show();
@@ -491,66 +529,71 @@ public class addToStorage extends AppCompatActivity {
                 gM.sendTextWIthPhotoPrompt(prompt, imageBitmap, new GeminiCallBack() {
                     @Override
                     public void onSuccess(String result) {
-                        runOnUiThread(() -> {
-                            if (pD.isShowing()) {
-                                pD.dismiss();
-                            }
-
-                            // Try to parse Gemini JSON and return to Storage screen.
-                            try {
-                                org.json.JSONObject o = new org.json.JSONObject(stripMarkdown(result));
-                                boolean isFridgeItem = o.optBoolean("is_fridge_item", false);
-                                String reason = o.optString("reason", "").trim();
-
-                                if (!isFridgeItem) {
-                                    showError("Not a fridge item", "This doesn't look like a fridge food." + (reason.isEmpty() ? "" : ("\n\nReason: " + reason)));
-                                    return;
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (pD.isShowing()) {
+                                    pD.dismiss();
                                 }
 
-                                String name = o.optString("product_name", "").trim();
-                                String shelfLife = o.optString("shelf_life", "").trim();
-                                String unit = o.optString("measurement_unit", "").trim();
-                                String category = o.optString("category", "").trim();
+                                try {
+                                    org.json.JSONObject o = new org.json.JSONObject(stripMarkdown(result));
+                                    boolean isFridgeItem = o.optBoolean("is_fridge_item", false);
+                                    String reason = o.optString("reason", "").trim();
 
-                                if (name.isEmpty()) {
-                                    showError("Unrecognized Item", "Couldn't identify the product name." + (reason.isEmpty() ? "" : ("\n\nReason: " + reason)));
-                                    return;
+                                    if (!isFridgeItem) {
+                                        showError("Not a fridge item", "This doesn't look like a fridge food." + (reason.isEmpty() ? "" : ("\n\nReason: " + reason)));
+                                        return;
+                                    }
+
+                                    String name = o.optString("product_name", "").trim();
+                                    String shelfLife = o.optString("shelf_life", "").trim();
+                                    String unit = o.optString("measurement_unit", "").trim();
+                                    String category = o.optString("category", "").trim();
+
+                                    if (name.isEmpty()) {
+                                        showError("Unrecognized Item", "Couldn't identify the product name." + (reason.isEmpty() ? "" : ("\n\nReason: " + reason)));
+                                        return;
+                                    }
+
+                                    long now = System.currentTimeMillis();
+                                    long expiresAtMs = 0L;
+                                    long duration = com.example.myfridge.storage.ShelfLifeParser.parseToDurationMillis(shelfLife);
+                                    if (duration > 0L) {
+                                        expiresAtMs = now + duration;
+                                    }
+
+                                    org.json.JSONObject out = new org.json.JSONObject();
+                                    out.put("name", name);
+                                    out.put("unit", unit);
+                                    out.put("category", category);
+                                    out.put("imageUri", lastImageUriString == null ? "" : lastImageUriString);
+                                    out.put("shelfLifeRaw", shelfLife);
+                                    out.put("expiresAtMs", expiresAtMs);
+                                    out.put("addedAtMs", now);
+
+                                    Intent data = new Intent();
+                                    data.putExtra(StorageActivity.EXTRA_PRODUCT_JSON, out.toString());
+                                    setResult(Activity.RESULT_OK, data);
+                                    finish();
+                                } catch (Exception ignored) {
+                                    showError("AI Response", result);
                                 }
-
-                                long now = System.currentTimeMillis();
-                                long expiresAtMs = 0L;
-                                long duration = com.example.myfridge.storage.ShelfLifeParser.parseToDurationMillis(shelfLife);
-                                if (duration > 0L) {
-                                    expiresAtMs = now + duration;
-                                }
-
-                                org.json.JSONObject out = new org.json.JSONObject();
-                                out.put("name", name);
-                                out.put("unit", unit);
-                                out.put("category", category);
-                                out.put("imageUri", lastImageUriString == null ? "" : lastImageUriString);
-                                out.put("shelfLifeRaw", shelfLife);
-                                out.put("expiresAtMs", expiresAtMs);
-                                out.put("addedAtMs", now);
-
-                                Intent data = new Intent();
-                                data.putExtra(StorageActivity.EXTRA_PRODUCT_JSON, out.toString());
-                                setResult(Activity.RESULT_OK, data);
-                                finish();
-                            } catch (Exception ignored) {
-                                showError("AI Response", result);
                             }
                         });
                     }
 
                     @Override
                     public void onFailure(Throwable error) {
-                        runOnUiThread(() -> {
-                            if (pD.isShowing()) {
-                                pD.dismiss();
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (pD.isShowing()) {
+                                    pD.dismiss();
+                                }
+                                showError("AI Error", "Something went wrong: " + error.getMessage());
+                                Log.e(TAG, "onActivityResult/ Error: " + error.getMessage());
                             }
-                            showError("AI Error", "Something went wrong: " + error.getMessage());
-                            Log.e(TAG, "onActivityResult/ Error: " + error.getMessage());
                         });
                     }
                 });

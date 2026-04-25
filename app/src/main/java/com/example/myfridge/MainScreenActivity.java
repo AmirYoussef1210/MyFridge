@@ -1,13 +1,14 @@
 package com.example.myfridge;
 
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import android.content.Intent;
 import com.example.myfridge.fragments.HomeFragment;
-import com.example.myfridge.fragments.SettingsFragment;
 import com.example.myfridge.fragments.ShoppingFragment;
 import com.example.myfridge.fragments.StorageFragment;
 import com.example.myfridge.notifications.ExpiryNotificationHelper;
@@ -24,7 +25,7 @@ import com.google.firebase.auth.FirebaseUser;
  * button. Navigation between {@link com.example.myfridge.fragments.HomeFragment},
  * {@link com.example.myfridge.fragments.StorageFragment},
  * {@link com.example.myfridge.fragments.ShoppingFragment} and
- * {@link com.example.myfridge.fragments.SettingsFragment} is driven by the
+ *
  * bottom-bar buttons.
  * </p>
  * <p>
@@ -59,13 +60,28 @@ public class MainScreenActivity extends MasterActivity {
         rtdb = new RtdbRepository();
 
         Button btnHome = findViewById(R.id.btn_home);
-        btnHome.setOnClickListener(v -> switchFragment(new HomeFragment()));
+        btnHome.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                switchFragment(new HomeFragment());
+            }
+        });
 
         Button btnInventory = findViewById(R.id.btn_inventory);
-        btnInventory.setOnClickListener(v -> switchFragment(new StorageFragment()));
+        btnInventory.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                switchFragment(new StorageFragment());
+            }
+        });
 
         Button btnShopping = findViewById(R.id.btn_shopping);
-        btnShopping.setOnClickListener(v -> switchFragment(new ShoppingFragment()));
+        btnShopping.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                switchFragment(new ShoppingFragment());
+            }
+        });
 
         if (savedInstanceState == null) {
             switchFragment(new HomeFragment());
@@ -78,7 +94,7 @@ public class MainScreenActivity extends MasterActivity {
      */
     @Override
     protected void onSettingsMenuSelected() {
-        switchFragment(new SettingsFragment());
+        startActivity(new Intent(this, SettingsActivity.class));
     }
 
     /**

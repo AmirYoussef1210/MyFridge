@@ -140,18 +140,21 @@ public class SignupActivity extends AppCompatActivity {
                                         .setDisplayName(fullName)
                                         .build();
 
-                                user.updateProfile(req).addOnCompleteListener(t -> {
-                                    new RtdbRepository().ensureUserProfile(user);
-                                    FirebaseDatabase.getInstance()
-                                            .getReference()
-                                            .child("users")
-                                            .child(user.getUid())
-                                            .child("name")
-                                            .setValue(fullName);
-                                    Intent i = new Intent(SignupActivity.this, OnboardingActivity.class);
-                                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                                    startActivity(i);
-                                    finish();
+                                user.updateProfile(req).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                    @Override
+                                    public void onComplete(@NonNull Task<Void> t) {
+                                        new RtdbRepository().ensureUserProfile(user);
+                                        FirebaseDatabase.getInstance()
+                                                .getReference()
+                                                .child("users")
+                                                .child(user.getUid())
+                                                .child("name")
+                                                .setValue(fullName);
+                                        Intent i = new Intent(SignupActivity.this, OnboardingActivity.class);
+                                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                        startActivity(i);
+                                        finish();
+                                    }
                                 });
                                 return;
                             }

@@ -1,8 +1,10 @@
 package com.example.myfridge;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
@@ -29,16 +31,22 @@ public class AboutActivity extends AppCompatActivity {
         setContentView(R.layout.activity_about);
 
         TextView tvGithub = findViewById(R.id.tv_about_github);
-        tvGithub.setOnClickListener(v -> {
-            new androidx.appcompat.app.AlertDialog.Builder(this)
-                    .setTitle("Open GitHub")
-                    .setMessage("Open github.com/AmirYoussef1210 in your browser?")
-                    .setPositiveButton("Open", (dialog, which) -> {
-                        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/AmirYoussef1210"));
-                        startActivity(intent);
-                    })
-                    .setNegativeButton("Cancel", null)
-                    .show();
+        tvGithub.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                new androidx.appcompat.app.AlertDialog.Builder(AboutActivity.this)
+                        .setTitle("Open GitHub")
+                        .setMessage("Open github.com/AmirYoussef1210 in your browser?")
+                        .setPositiveButton("Open", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/AmirYoussef1210"));
+                                startActivity(intent);
+                            }
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show();
+            }
         });
     }
 }

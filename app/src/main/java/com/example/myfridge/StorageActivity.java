@@ -11,7 +11,9 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.content.DialogInterface;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Spinner;
@@ -106,10 +108,20 @@ public class StorageActivity extends AppCompatActivity {
         rv.setLayoutManager(new LinearLayoutManager(this));
         rv.setAdapter(adapter);
 
-        adapter.setOnProductClickListener(product -> showProductOptionsDialog(product));
+        adapter.setOnProductClickListener(new ProductAdapter.OnProductClickListener() {
+            @Override
+            public void onClick(Product product) {
+                showProductOptionsDialog(product);
+            }
+        });
 
         FloatingActionButton fab = findViewById(R.id.fab_add_to_storage);
-        fab.setOnClickListener(v -> addToStorageLauncher.launch(new Intent(this, addToStorage.class)));
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                addToStorageLauncher.launch(new Intent(StorageActivity.this, addToStorage.class));
+            }
+        });
 
         etSearch.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
@@ -119,7 +131,12 @@ public class StorageActivity extends AppCompatActivity {
             }
         });
 
-        cbAboutToExpire.setOnCheckedChangeListener((buttonView, isChecked) -> applyAllFilters());
+        cbAboutToExpire.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                applyAllFilters();
+            }
+        });
 
         setupSortSpinner();
     }
@@ -200,32 +217,38 @@ public class StorageActivity extends AppCompatActivity {
         rtdb.fetchAllInventory(user, new RtdbRepository.ProductsCallback() {
             @Override
             public void onSuccess(List<Product> products) {
-                runOnUiThread(() -> {
-                    allProducts.clear();
-                    allProducts.addAll(products);
-                    setupCategorySpinner();
-                    rtdb.fetchUserPreferences(user, new RtdbRepository.UserPrefsCallback() {
-                        @Override
-                        public void onSuccess(String units, int daysBeforeExpireChoice) {
-                            aboutToExpireWindowMs = (long) daysBeforeExpireChoice * 24L * 60L * 60L * 1000L;
-                            applyAllFilters();
-                        }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        allProducts.clear();
+                        allProducts.addAll(products);
+                        setupCategorySpinner();
+                        rtdb.fetchUserPreferences(user, new RtdbRepository.UserPrefsCallback() {
+                            @Override
+                            public void onSuccess(String units, int daysBeforeExpireChoice) {
+                                aboutToExpireWindowMs = (long) daysBeforeExpireChoice * 24L * 60L * 60L * 1000L;
+                                applyAllFilters();
+                            }
 
-                        @Override
-                        public void onFailure(com.google.firebase.database.DatabaseError error) {
-                            aboutToExpireWindowMs = 2L * 24L * 60L * 60L * 1000L;
-                            applyAllFilters();
-                        }
-                    });
+                            @Override
+                            public void onFailure(com.google.firebase.database.DatabaseError error) {
+                                aboutToExpireWindowMs = 2L * 24L * 60L * 60L * 1000L;
+                                applyAllFilters();
+                            }
+                        });
+                    }
                 });
             }
 
             @Override
             public void onFailure(com.google.firebase.database.DatabaseError error) {
-                runOnUiThread(() -> {
-                    allProducts.clear();
-                    setupCategorySpinner();
-                    applyAllFilters();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        allProducts.clear();
+                        setupCategorySpinner();
+                        applyAllFilters();
+                    }
                 });
             }
         });
@@ -242,13 +265,16 @@ public class StorageActivity extends AppCompatActivity {
 
         new AlertDialog.Builder(this)
                 .setTitle(product.name)
-                .setItems(options, (dialog, which) -> {
-                    if (which == 0) {
-                        showChangeAmountDialog(product);
-                    } else if (which == 1) {
-                        showChangeExpirationDateDialog(product);
-                    } else if (which == 2) {
-                        confirmRemoveProduct(product);
+                .setItems(options, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        if (which == 0) {
+                            showChangeAmountDialog(product);
+                        } else if (which == 1) {
+                            showChangeExpirationDateDialog(product);
+                        } else if (which == 2) {
+                            confirmRemoveProduct(product);
+                        }
                     }
                 })
                 .show();
@@ -268,18 +294,21 @@ public class StorageActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle("Change amount")
                 .setView(input)
-                .setPositiveButton("Save", (dialog, which) -> {
-                    String text = input.getText() == null ? "" : input.getText().toString().trim();
-                    int newAmount;
-                    try {
-                        newAmount = Integer.parseInt(text);
-                    } catch (NumberFormatException e) {
-                        return;
-                    }
-                    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-                    if (user != null) {
-                        rtdb.updateInventoryAmount(user, product, newAmount);
-                        refresh();
+                .setPositiveButton("Save", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        String text = input.getText() == null ? "" : input.getText().toString().trim();
+                        int newAmount;
+                        try {
+                            newAmount = Integer.parseInt(text);
+                        } catch (NumberFormatException e) {
+                            return;
+                        }
+                        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                        if (user != null) {
+                            rtdb.updateInventoryAmount(user, product, newAmount);
+                            refresh();
+                        }
                     }
                 })
                 .setNegativeButton("Cancel", null)
@@ -296,11 +325,14 @@ public class StorageActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle("Remove product")
                 .setMessage("Remove \"" + product.name + "\" from your inventory?")
-                .setPositiveButton("Remove", (dialog, which) -> {
-                    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-                    if (user != null) {
-                        rtdb.deleteInventoryItem(user, product);
-                        refresh();
+                .setPositiveButton("Remove", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                        if (user != null) {
+                            rtdb.deleteInventoryItem(user, product);
+                            refresh();
+                        }
                     }
                 })
                 .setNegativeButton("Cancel", null)
@@ -343,28 +375,31 @@ public class StorageActivity extends AppCompatActivity {
 
         DatePickerDialog dlg = new DatePickerDialog(
                 this,
-                (DatePicker view, int year, int month, int dayOfMonth) -> {
-                    Calendar selected = Calendar.getInstance();
-                    selected.set(Calendar.YEAR, year);
-                    selected.set(Calendar.MONTH, month);
-                    selected.set(Calendar.DAY_OF_MONTH, dayOfMonth);
-                    selected.set(Calendar.HOUR_OF_DAY, 12);
-                    selected.set(Calendar.MINUTE, 0);
-                    selected.set(Calendar.SECOND, 0);
-                    selected.set(Calendar.MILLISECOND, 0);
+                new DatePickerDialog.OnDateSetListener() {
+                    @Override
+                    public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
+                        Calendar selected = Calendar.getInstance();
+                        selected.set(Calendar.YEAR, year);
+                        selected.set(Calendar.MONTH, month);
+                        selected.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+                        selected.set(Calendar.HOUR_OF_DAY, 12);
+                        selected.set(Calendar.MINUTE, 0);
+                        selected.set(Calendar.SECOND, 0);
+                        selected.set(Calendar.MILLISECOND, 0);
 
-                    long selectedMs = selected.getTimeInMillis();
-                    if (selectedMs < minMs) {
-                        Toast.makeText(
-                                this,
-                                "Date must be at least 1 day after today.",
-                                Toast.LENGTH_SHORT
-                        ).show();
-                        return;
+                        long selectedMs = selected.getTimeInMillis();
+                        if (selectedMs < minMs) {
+                            Toast.makeText(
+                                    StorageActivity.this,
+                                    "Date must be at least 1 day after today.",
+                                    Toast.LENGTH_SHORT
+                            ).show();
+                            return;
+                        }
+
+                        rtdb.changeInventoryExpirationDate(user, product, selectedMs);
+                        refresh();
                     }
-
-                    rtdb.changeInventoryExpirationDate(user, product, selectedMs);
-                    refresh();
                 },
                 initial.get(Calendar.YEAR),
                 initial.get(Calendar.MONTH),
@@ -476,11 +511,26 @@ public class StorageActivity extends AppCompatActivity {
     private void applySort(List<Product> list) {
         if (list == null) return;
         if (sortMode == SortMode.RECENTLY_ADDED) {
-            Collections.sort(list, (a, b) -> Long.compare(b.updatedAtMs, a.updatedAtMs));
+            Collections.sort(list, new Comparator<Product>() {
+                @Override
+                public int compare(Product a, Product b) {
+                    return Long.compare(b.updatedAtMs, a.updatedAtMs);
+                }
+            });
         } else if (sortMode == SortMode.A_TO_Z) {
-            Collections.sort(list, Comparator.comparing(p -> safeLower(p.name)));
+            Collections.sort(list, new Comparator<Product>() {
+                @Override
+                public int compare(Product a, Product b) {
+                    return safeLower(a.name).compareTo(safeLower(b.name));
+                }
+            });
         } else if (sortMode == SortMode.Z_TO_A) {
-            Collections.sort(list, (a, b) -> safeLower(b.name).compareTo(safeLower(a.name)));
+            Collections.sort(list, new Comparator<Product>() {
+                @Override
+                public int compare(Product a, Product b) {
+                    return safeLower(b.name).compareTo(safeLower(a.name));
+                }
+            });
         }
     }
 

@@ -8,6 +8,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ImageView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -89,11 +90,19 @@ public class WelcomeActivity extends AppCompatActivity {
         Bitmap bmp = BitmapFactory.decodeResource(getResources(), R.drawable.welcome_screen, opts);
         bg.setImageBitmap(bmp);
 
-        findViewById(R.id.btn_sign_in).setOnClickListener(v ->
-                startActivity(new Intent(this, MainActivity.class)));
+        findViewById(R.id.btn_sign_in).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(WelcomeActivity.this, MainActivity.class));
+            }
+        });
 
-        findViewById(R.id.btn_create_account).setOnClickListener(v ->
-                startActivity(new Intent(this, SignupActivity.class)));
+        findViewById(R.id.btn_create_account).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(WelcomeActivity.this, SignupActivity.class));
+            }
+        });
     }
 
     /**

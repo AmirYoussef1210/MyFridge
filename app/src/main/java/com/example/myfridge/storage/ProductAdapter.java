@@ -91,9 +91,12 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.VH> {
             holder.image.setImageResource(R.drawable.ic_fridge);
         }
 
-        holder.itemView.setOnClickListener(v -> {
-            if (clickListener != null) {
-                clickListener.onClick(p);
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (clickListener != null) {
+                    clickListener.onClick(p);
+                }
             }
         });
     }
