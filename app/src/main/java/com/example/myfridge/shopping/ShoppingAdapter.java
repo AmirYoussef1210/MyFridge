@@ -118,6 +118,13 @@ public class ShoppingAdapter extends RecyclerView.Adapter<ShoppingAdapter.VH> {
         notifyDataSetChanged();
     }
 
+    /**
+     * Inflates a new {@code R.layout.item_shopping_item} row and wraps it in a {@link VH}.
+     *
+     * @param parent   the RecyclerView into which the new view will be added
+     * @param viewType unused — all rows share the same layout
+     * @return a newly inflated {@link VH}
+     */
     @NonNull
     @Override
     public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -125,6 +132,13 @@ public class ShoppingAdapter extends RecyclerView.Adapter<ShoppingAdapter.VH> {
         return new VH(v);
     }
 
+    /**
+     * Binds the shopping item at {@code position} to {@code holder}, updating the
+     * name, category/quantity text, bought-checkbox state, and click listeners.
+     *
+     * @param holder   the ViewHolder to bind
+     * @param position the position of the item in the data set
+     */
     @Override
     public void onBindViewHolder(@NonNull VH holder, int position) {
         ShoppingItem item = items.get(position);
@@ -156,6 +170,11 @@ public class ShoppingAdapter extends RecyclerView.Adapter<ShoppingAdapter.VH> {
         });
     }
 
+    /**
+     * Returns the number of shopping items currently displayed by the adapter.
+     *
+     * @return the size of the data set
+     */
     @Override
     public int getItemCount() {
         return items.size();
@@ -171,6 +190,11 @@ public class ShoppingAdapter extends RecyclerView.Adapter<ShoppingAdapter.VH> {
         final TextView txtMeta;
         final TextView txtQty;
 
+        /**
+         * Inflates and caches view references from the given item view.
+         *
+         * @param itemView the root view of the {@code R.layout.item_shopping_item} row
+         */
         VH(@NonNull View itemView) {
             super(itemView);
             cbBought = itemView.findViewById(R.id.cb_bought);

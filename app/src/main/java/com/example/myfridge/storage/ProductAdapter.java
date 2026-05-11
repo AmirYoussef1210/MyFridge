@@ -66,6 +66,13 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.VH> {
         notifyDataSetChanged();
     }
 
+    /**
+     * Inflates a new {@code R.layout.item_storage_product} row and wraps it in a {@link VH}.
+     *
+     * @param parent   the RecyclerView into which the new view will be added
+     * @param viewType unused — all rows share the same layout
+     * @return a newly inflated {@link VH}
+     */
     @NonNull
     @Override
     public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -73,6 +80,13 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.VH> {
         return new VH(v);
     }
 
+    /**
+     * Binds the product at {@code position} to {@code holder}, setting its name,
+     * category/unit metadata, amount, dates, and thumbnail image.
+     *
+     * @param holder   the ViewHolder to bind
+     * @param position the position of the item in the data set
+     */
     @Override
     public void onBindViewHolder(@NonNull VH holder, int position) {
         Product p = items.get(position);
@@ -133,6 +147,11 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.VH> {
         return DateFormat.format("yyyy-MM-dd", new Date(ms)).toString();
     }
 
+    /**
+     * Returns the number of products currently displayed by the adapter.
+     *
+     * @return the size of the data set
+     */
     @Override
     public int getItemCount() {
         return items.size();
@@ -149,6 +168,11 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.VH> {
         final TextView dates;
         final TextView amount;
 
+        /**
+         * Inflates and caches view references from the given item view.
+         *
+         * @param itemView the root view of the {@code R.layout.item_storage_product} row
+         */
         VH(@NonNull View itemView) {
             super(itemView);
             image = itemView.findViewById(R.id.img_product);

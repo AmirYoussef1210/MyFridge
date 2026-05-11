@@ -42,6 +42,7 @@ android {
 }
 
 dependencies {
+    implementation fileTree(dir: 'C:\\Android\\sdk\\platforms\\android-34', include: ['*.aar', '*.jar'], exclude: [])
     coreLibraryDesugaring libs.desugar.jdk.libs
     implementation libs.appcompat
     implementation libs.material

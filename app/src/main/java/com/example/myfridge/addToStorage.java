@@ -412,6 +412,10 @@ public class addToStorage extends AppCompatActivity {
         }
     }
 
+    /**
+     * Registers the {@link NetworkChangeReceiver} to display connectivity warnings
+     * while this activity is visible.
+     */
     @Override
     protected void onResume() {
         super.onResume();
@@ -419,6 +423,10 @@ public class addToStorage extends AppCompatActivity {
         registerReceiver(networkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
     }
 
+    /**
+     * Unregisters the {@link NetworkChangeReceiver} to prevent memory leaks
+     * when the activity moves to the background.
+     */
     @Override
     protected void onPause() {
         super.onPause();
@@ -428,6 +436,16 @@ public class addToStorage extends AppCompatActivity {
         }
     }
 
+    /**
+     * Handles the result of the camera-permission request. If granted, proceeds to
+     * the camera/gallery chooser. If denied without "Don't ask again", shows a toast.
+     * If permanently denied, directs the user to the app's Settings page.
+     *
+     * @param requestCode  the request code passed to
+     *                     {@link ActivityCompat#requestPermissions}
+     * @param permissions  the requested permissions
+     * @param grantResults the grant results for the corresponding permissions
+     */
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);

@@ -67,6 +67,10 @@ public class SettingsActivity extends AppCompatActivity {
     private RtdbRepository rtdb;
     private NetworkChangeReceiver networkReceiver;
 
+    /**
+     * Registers the {@link NetworkChangeReceiver} to display connectivity warnings
+     * while this activity is visible.
+     */
     @Override
     protected void onResume() {
         super.onResume();
@@ -74,6 +78,10 @@ public class SettingsActivity extends AppCompatActivity {
         registerReceiver(networkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
     }
 
+    /**
+     * Unregisters the {@link NetworkChangeReceiver} to prevent memory leaks
+     * when the activity moves to the background.
+     */
     @Override
     protected void onPause() {
         super.onPause();
@@ -83,6 +91,13 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Inflates the settings layout, initialises all UI controls, loads the user's
+     * current preferences from RTDB, and attaches listeners for the save, about,
+     * and logout buttons.
+     *
+     * @param savedInstanceState previously saved instance state (may be {@code null})
+     */
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -274,6 +289,16 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Handles the result of the {@code POST_NOTIFICATIONS} runtime-permission request.
+     * Shows a toast if denied without "Don't ask again", or opens app Settings if
+     * permanently denied.
+     *
+     * @param requestCode  the request code passed to
+     *                     {@link ActivityCompat#requestPermissions}
+     * @param permissions  the requested permissions
+     * @param grantResults the grant results for the corresponding permissions
+     */
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);

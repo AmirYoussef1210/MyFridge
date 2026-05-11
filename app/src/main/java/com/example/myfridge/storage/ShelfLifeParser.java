@@ -25,6 +25,11 @@ public final class ShelfLifeParser {
     /**
      * Best-effort parse of strings like "7 days", "12 months", "2 weeks".
      * Returns duration in millis. Returns 0 if unknown/unparseable.
+     *
+     * @param raw the natural-language shelf-life string (e.g. "7 days", "2 weeks");
+     *            may be {@code null}
+     * @return the duration in milliseconds, or {@code 0} if the string is null,
+     *         empty, or cannot be parsed
      */
     public static long parseToDurationMillis(String raw) {
         if (raw == null) return 0L;

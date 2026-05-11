@@ -339,17 +339,29 @@ public class StorageFragment extends Fragment {
         String q = etSearch.getText() == null ? "" : etSearch.getText().toString().trim().toLowerCase();
         boolean onlyExpiringSoon = cbAboutToExpire.isChecked();
         List<Product> filtered = new ArrayList<>();
-        long now = System.currentTimeMillis();
+        Calendar todayCal = Calendar.getInstance();
+        todayCal.set(Calendar.HOUR_OF_DAY, 0);
+        todayCal.set(Calendar.MINUTE, 0);
+        todayCal.set(Calendar.SECOND, 0);
+        todayCal.set(Calendar.MILLISECOND, 0);
+        long todayMidnight = todayCal.getTimeInMillis();
+        long daysWindow = aboutToExpireWindowMs / 86400000L;
         for (Product p : allProducts) {
             // 1. Text search across name, category, and unit
             if (!q.isEmpty() && !(contains(p.name, q) || contains(p.category, q) || contains(p.unit, q))) continue;
             // 2. Category filter
             if (!"All".equalsIgnoreCase(selectedCategory) && !equalsIgnoreCase(p.category, selectedCategory)) continue;
-            // 3. Expiry filter: skip items with no date, already expired, or expiring too far in the future
+            // 3. Expiry filter: compare calendar days so "tomorrow" is always 1 day away
             if (onlyExpiringSoon) {
                 if (p.expiresAtMs <= 0L) continue;
-                long diff = p.expiresAtMs - now;
-                if (diff < 0L || diff > aboutToExpireWindowMs) continue;
+                Calendar expCal = Calendar.getInstance();
+                expCal.setTimeInMillis(p.expiresAtMs);
+                expCal.set(Calendar.HOUR_OF_DAY, 0);
+                expCal.set(Calendar.MINUTE, 0);
+                expCal.set(Calendar.SECOND, 0);
+                expCal.set(Calendar.MILLISECOND, 0);
+                long daysUntilExpiry = (expCal.getTimeInMillis() - todayMidnight) / 86400000L;
+                if (daysUntilExpiry < 0 || daysUntilExpiry > daysWindow) continue;
             }
             filtered.add(p);
         }

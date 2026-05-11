@@ -152,10 +152,19 @@ public final class ExpiryWorkScheduler {
 
         private final Context app;
 
+        /**
+         * Creates a runnable that will perform the expiry check on a background thread.
+         *
+         * @param app the application context passed to {@link ExpiryCheckWorker#doCheck}
+         */
         ExpiryCheckRunnable(Context app) {
             this.app = app;
         }
 
+        /**
+         * Delegates to {@link ExpiryCheckWorker#doCheck} to perform the full
+         * expiry check synchronously on the calling background thread.
+         */
         @Override
         public void run() {
             ExpiryCheckWorker.doCheck(app);

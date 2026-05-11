@@ -50,6 +50,10 @@ public class OnboardingActivity extends AppCompatActivity {
         registerReceiver(networkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
     }
 
+    /**
+     * Unregisters the {@link NetworkChangeReceiver} to prevent memory leaks
+     * when the activity moves to the background.
+     */
     @Override
     protected void onPause() {
         super.onPause();

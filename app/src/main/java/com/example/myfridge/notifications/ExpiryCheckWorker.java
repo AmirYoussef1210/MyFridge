@@ -16,6 +16,7 @@ import com.google.firebase.database.DatabaseError;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -122,15 +123,25 @@ class ExpiryCheckWorker {
         if (errRef.get() != null) return;
 
         int days = daysRef.get() == null ? 2 : daysRef.get();
-        long windowMs = (long) days * 24L * 60L * 60L * 1000L;
-        long now = System.currentTimeMillis();
         DateFormat df = new SimpleDateFormat("MMM d, yyyy", Locale.getDefault());
+        Calendar todayCal = Calendar.getInstance();
+        todayCal.set(Calendar.HOUR_OF_DAY, 0);
+        todayCal.set(Calendar.MINUTE, 0);
+        todayCal.set(Calendar.SECOND, 0);
+        todayCal.set(Calendar.MILLISECOND, 0);
+        long todayMidnight = todayCal.getTimeInMillis();
 
         List<String> lines = new ArrayList<>();
         for (Product p : productsRef.get()) {
             if (p.expiresAtMs <= 0L) continue;
-            long diff = p.expiresAtMs - now;
-            if (diff >= 0L && diff <= windowMs) {
+            Calendar expCal = Calendar.getInstance();
+            expCal.setTimeInMillis(p.expiresAtMs);
+            expCal.set(Calendar.HOUR_OF_DAY, 0);
+            expCal.set(Calendar.MINUTE, 0);
+            expCal.set(Calendar.SECOND, 0);
+            expCal.set(Calendar.MILLISECOND, 0);
+            long daysUntil = (expCal.getTimeInMillis() - todayMidnight) / 86400000L;
+            if (daysUntil >= 0 && daysUntil <= days) {
                 String exp = df.format(new Date(p.expiresAtMs));
                 int amt = Math.max(0, p.amount);
                 lines.add(p.name + (amt > 1 ? " (×" + amt + ")" : "") + " — expires " + exp);

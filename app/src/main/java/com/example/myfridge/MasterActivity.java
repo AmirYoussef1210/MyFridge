@@ -22,6 +22,10 @@ public abstract class MasterActivity extends AppCompatActivity {
 
     private NetworkChangeReceiver networkReceiver;
 
+    /**
+     * Registers the {@link NetworkChangeReceiver} to display connectivity warnings
+     * while this activity is visible.
+     */
     @Override
     protected void onResume() {
         super.onResume();
@@ -29,6 +33,10 @@ public abstract class MasterActivity extends AppCompatActivity {
         registerReceiver(networkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
     }
 
+    /**
+     * Unregisters the {@link NetworkChangeReceiver} to prevent memory leaks
+     * when the activity moves to the background.
+     */
     @Override
     protected void onPause() {
         super.onPause();
@@ -38,6 +46,13 @@ public abstract class MasterActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Inflates {@link R.layout#activity_master}, wires the options-menu button,
+     * then inflates the subclass body layout (from {@link #getMasterContentLayoutId()})
+     * into the content host frame and calls {@link #onAfterMasterContentInflated}.
+     *
+     * @param savedInstanceState previously saved instance state (may be {@code null})
+     */
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -79,6 +94,12 @@ public abstract class MasterActivity extends AppCompatActivity {
     protected void onSettingsMenuSelected() {
     }
 
+    /**
+     * Returns the layout resource ID of the content to inflate inside the
+     * {@code master_content_host} frame of {@link R.layout#activity_master}.
+     *
+     * @return a valid {@code @LayoutRes} resource ID
+     */
     @LayoutRes
     protected abstract int getMasterContentLayoutId();
 

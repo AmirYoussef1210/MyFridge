@@ -39,6 +39,10 @@ public class WelcomeActivity extends AppCompatActivity {
 
     private NetworkChangeReceiver networkReceiver;
 
+    /**
+     * Registers the {@link NetworkChangeReceiver} so the activity can display
+     * connectivity warnings while it is visible to the user.
+     */
     @Override
     protected void onResume() {
         super.onResume();
@@ -46,6 +50,10 @@ public class WelcomeActivity extends AppCompatActivity {
         registerReceiver(networkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
     }
 
+    /**
+     * Unregisters the {@link NetworkChangeReceiver} to prevent memory leaks
+     * when the activity moves to the background.
+     */
     @Override
     protected void onPause() {
         super.onPause();

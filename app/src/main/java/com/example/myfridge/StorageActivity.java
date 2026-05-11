@@ -141,6 +141,11 @@ public class StorageActivity extends AppCompatActivity {
         setupSortSpinner();
     }
 
+    /**
+     * Registers the {@link NetworkChangeReceiver} for connectivity warnings and
+     * refreshes the inventory list from RTDB so data is always current when the
+     * screen returns to the foreground.
+     */
     @Override
     protected void onResume() {
         super.onResume();
@@ -149,6 +154,10 @@ public class StorageActivity extends AppCompatActivity {
         refresh();
     }
 
+    /**
+     * Unregisters the {@link NetworkChangeReceiver} to prevent memory leaks
+     * when the activity moves to the background.
+     */
     @Override
     protected void onPause() {
         super.onPause();
@@ -419,7 +428,13 @@ public class StorageActivity extends AppCompatActivity {
         boolean onlyExpiringSoon = cbAboutToExpire.isChecked();
 
         List<Product> filtered = new ArrayList<>();
-        long now = System.currentTimeMillis();
+        Calendar todayCal = Calendar.getInstance();
+        todayCal.set(Calendar.HOUR_OF_DAY, 0);
+        todayCal.set(Calendar.MINUTE, 0);
+        todayCal.set(Calendar.SECOND, 0);
+        todayCal.set(Calendar.MILLISECOND, 0);
+        long todayMidnight = todayCal.getTimeInMillis();
+        long daysWindow = aboutToExpireWindowMs / 86400000L;
 
         for (Product p : allProducts) {
             if (!q.isEmpty() && !matchesSearch(p, q)) continue;
@@ -427,8 +442,14 @@ public class StorageActivity extends AppCompatActivity {
 
             if (onlyExpiringSoon) {
                 if (p.expiresAtMs <= 0L) continue;
-                long diff = p.expiresAtMs - now;
-                if (diff < 0L || diff > aboutToExpireWindowMs) continue;
+                Calendar expCal = Calendar.getInstance();
+                expCal.setTimeInMillis(p.expiresAtMs);
+                expCal.set(Calendar.HOUR_OF_DAY, 0);
+                expCal.set(Calendar.MINUTE, 0);
+                expCal.set(Calendar.SECOND, 0);
+                expCal.set(Calendar.MILLISECOND, 0);
+                long daysUntilExpiry = (expCal.getTimeInMillis() - todayMidnight) / 86400000L;
+                if (daysUntilExpiry < 0 || daysUntilExpiry > daysWindow) continue;
             }
 
             filtered.add(p);

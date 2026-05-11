@@ -35,11 +35,23 @@ public class ExpiryAlarmReceiver extends BroadcastReceiver {
         private final Context app;
         private final PendingResult result;
 
+        /**
+         * Creates a runnable that will perform the expiry check and then signal
+         * the system that the async broadcast is complete.
+         *
+         * @param app    the application context passed to {@link ExpiryCheckWorker#doCheck}
+         * @param result the pending result token returned by {@link #goAsync()}
+         */
         ExpiryCheckRunnable(Context app, PendingResult result) {
             this.app = app;
             this.result = result;
         }
 
+        /**
+         * Executes {@link ExpiryCheckWorker#doCheck} and calls
+         * {@link PendingResult#finish()} in a {@code finally} block so the system
+         * always knows when the async broadcast handler has completed.
+         */
         @Override
         public void run() {
             try {
